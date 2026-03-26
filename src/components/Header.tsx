@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Menu } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, spacing, fontSize } from '../theme';
+import { useAppTheme } from '../context/AppTheme';
 
 interface HeaderProps {
   onMenuPress: () => void;
@@ -11,15 +12,16 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onMenuPress, rightElement }) => {
   const insets = useSafeAreaInsets();
+  const { theme } = useAppTheme();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
       <TouchableOpacity onPress={onMenuPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Menu size={24} color={colors.brandRed} />
+        <Menu size={24} color={theme.primary} />
       </TouchableOpacity>
 
       <View style={styles.titleContainer}>
-        <Text style={styles.titleMain}>A-TEAM</Text>
+        <Text style={[styles.titleMain, { color: theme.primary }]}>A-TEAM</Text>
         <Text style={styles.titleSub}>Electricians</Text>
       </View>
 

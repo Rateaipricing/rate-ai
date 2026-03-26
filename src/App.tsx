@@ -41,6 +41,7 @@ import {
 
 import { Screen, Category, TaskGroup, TaskLevel, Task, PricingData, AppUser } from './types';
 import { colors } from './theme';
+import { AppThemeProvider } from './context/AppTheme';
 
 import SplashScreenComponent from './screens/SplashScreen';
 import LoginScreen from './screens/LoginScreen';
@@ -474,16 +475,18 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   return (
-    <SafeAreaProvider>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor={colors.brandBlack}
-        translucent={false}
-      />
-      <View style={styles.root} onLayout={onLayoutRootView}>
-        {renderScreen()}
-      </View>
-    </SafeAreaProvider>
+    <AppThemeProvider>
+      <SafeAreaProvider>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={colors.brandBlack}
+          translucent={false}
+        />
+        <View style={styles.root} onLayout={onLayoutRootView}>
+          {renderScreen()}
+        </View>
+      </SafeAreaProvider>
+    </AppThemeProvider>
   );
 }
 

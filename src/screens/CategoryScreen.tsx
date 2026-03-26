@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { MenuOverlay } from '../components/MenuOverlay';
 import { colors, fonts, spacing, fontSize } from '../theme';
+import { useAppTheme } from '../context/AppTheme';
 import { Category, Screen, AppUser } from '../types';
 
 interface CategoryScreenProps {
@@ -30,6 +31,7 @@ export default function CategoryScreen({
   isRefreshing,
 }: CategoryScreenProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { theme } = useAppTheme();
 
   return (
     <View style={styles.container}>
@@ -46,8 +48,8 @@ export default function CategoryScreen({
 
       {/* Two-pane list */}
       <View style={styles.listContainer}>
-        {/* Red sidebar */}
-        <View style={styles.sidebar}>
+        {/* Sidebar */}
+        <View style={[styles.sidebar, { backgroundColor: theme.primary }]}>
           <View style={styles.sidebarInner}>
             <Text style={styles.sidebarLabel}>Electrical</Text>
             <ChevronRight size={16} color={colors.white} />

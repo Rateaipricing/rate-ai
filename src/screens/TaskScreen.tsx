@@ -12,6 +12,7 @@ import { CheckCircle2 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { MenuOverlay } from '../components/MenuOverlay';
 import { colors, fonts, spacing, fontSize, radius } from '../theme';
+import { useAppTheme } from '../context/AppTheme';
 import { Category, TaskGroup, TaskLevel, Task, Screen, AppUser } from '../types';
 
 interface TaskScreenProps {
@@ -54,6 +55,7 @@ export default function TaskScreen({
   isRefreshing,
 }: TaskScreenProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { theme } = useAppTheme();
   const reversedTasks = [...selectedLevel.tasks].reverse();
 
   return (
@@ -111,7 +113,7 @@ export default function TaskScreen({
       </ScrollView>
 
       {/* Mode toggle */}
-      <View style={styles.modeToggle}>
+      <View style={[styles.modeToggle, { backgroundColor: theme.primary }]}>
         <Text style={[styles.modeLabel, isTechHandbookMode && styles.modeLabelInactive]}>
           Customer{'\n'}Description
         </Text>
@@ -145,7 +147,7 @@ export default function TaskScreen({
         ListFooterComponent={
           <View style={styles.footerBtn}>
             <TouchableOpacity
-              style={styles.continueBtn}
+              style={[styles.continueBtn, { backgroundColor: theme.primary }]}
               onPress={onContinueToPresentation}
               activeOpacity={0.85}
             >

@@ -14,6 +14,7 @@ import { LogIn, Mail, Lock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo } from '../components/Logo';
 import { colors, fonts, spacing, fontSize, radius } from '../theme';
+import { useAppTheme } from '../context/AppTheme';
 
 interface LoginScreenProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
@@ -29,6 +30,7 @@ export default function LoginScreen({
   isLoggingIn,
 }: LoginScreenProps) {
   const insets = useSafeAreaInsets();
+  const { theme } = useAppTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -158,7 +160,7 @@ export default function LoginScreen({
           )}
 
           <TouchableOpacity
-            style={[styles.submitBtn, isLoggingIn && styles.submitBtnDisabled]}
+            style={[styles.submitBtn, { backgroundColor: theme.primary }, isLoggingIn && styles.submitBtnDisabled]}
             onPress={handleSubmit}
             disabled={isLoggingIn}
             activeOpacity={0.85}

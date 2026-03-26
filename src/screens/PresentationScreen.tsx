@@ -4,7 +4,8 @@ import { CheckCircle2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '../components/Header';
 import { MenuOverlay } from '../components/MenuOverlay';
-import { colors, fonts, spacing, fontSize, radius, getTierConfig } from '../theme';
+import { colors, fonts, spacing, fontSize, radius } from '../theme';
+import { useAppTheme } from '../context/AppTheme';
 import { TaskLevel, Screen, AppUser } from '../types';
 
 interface PresentationScreenProps {
@@ -29,8 +30,14 @@ export default function PresentationScreen({
   isRefreshing,
 }: PresentationScreenProps) {
   const insets = useSafeAreaInsets();
+  const { theme } = useAppTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const sortedTasks = [...level.tasks].sort((a, b) => b.tier.localeCompare(a.tier));
+
+  const getTierConfig = (tier: string) => {
+    const key = tier.toUpperCase() as keyof typeof theme.tiers;
+    return theme.tiers[key] ?? { bg: colors.white, bar: colors.brandBlack, text: colors.brandBlack };
+  };
 
   return (
     <View style={styles.container}>

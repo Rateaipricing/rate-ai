@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { MenuOverlay } from '../components/MenuOverlay';
 import { colors, fonts, spacing, fontSize } from '../theme';
+import { useAppTheme } from '../context/AppTheme';
 import { Category, TaskGroup, Screen, AppUser } from '../types';
 
 interface TaskGroupScreenProps {
@@ -42,6 +43,7 @@ export default function TaskGroupScreen({
   isRefreshing,
 }: TaskGroupScreenProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { theme } = useAppTheme();
 
   // Flatten groups × levels for the right pane
   const flatItems: FlatItem[] = [];
@@ -73,13 +75,16 @@ export default function TaskGroupScreen({
       {/* Two-pane */}
       <View style={styles.listContainer}>
         {/* Sidebar: all categories */}
-        <ScrollView style={styles.sidebar} showsVerticalScrollIndicator={false}>
+        <ScrollView style={[styles.sidebar, { backgroundColor: theme.primary }]} showsVerticalScrollIndicator={false}>
           {categories.map((cat, idx) => {
             const isActive = cat.name === category.name;
             return (
               <TouchableOpacity
                 key={idx}
-                style={[styles.sidebarItem, isActive ? styles.sidebarItemActive : styles.sidebarItemInactive]}
+                style={[
+                  styles.sidebarItem,
+                  { backgroundColor: isActive ? theme.primary : theme.primary + '66' },
+                ]}
                 onPress={() => onCategorySelect(cat)}
                 activeOpacity={0.7}
               >
@@ -187,12 +192,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },
-  sidebarItemActive: {
-    backgroundColor: colors.brandRed,
-  },
-  sidebarItemInactive: {
-    backgroundColor: 'rgba(167,7,7,0.4)',
-  },
+  sidebarItemActive: {},
+  sidebarItemInactive: {},
   sidebarItemText: {
     fontFamily: fonts.sansBlack,
     fontSize: 10,

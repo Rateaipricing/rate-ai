@@ -25,9 +25,19 @@ import {
   Users,
   Save,
   X,
+  Settings,
+  Check,
+  RotateCcw,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, spacing, fontSize, radius } from '../theme';
+import {
+  useAppTheme,
+  PRIMARY_SWATCHES,
+  TIER_SWATCHES,
+  DEFAULT_THEME,
+  TierColorSet,
+} from '../context/AppTheme';
 import { AppUser, PricingData, Category, TaskGroup, Task } from '../types';
 import {
   db,
@@ -274,6 +284,8 @@ export default function AdminScreen({
   onSyncData,
 }: AdminScreenProps) {
   const insets = useSafeAreaInsets();
+  const { theme, setPrimary, setTierColor, resetToDefault } = useAppTheme();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>('categories');
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -765,13 +777,17 @@ export default function AdminScreen({
           }
         </TouchableOpacity>
         <Text style={styles.headerTitle}>ADMIN PANEL</Text>
-        <TouchableOpacity style={styles.syncBtn} onPress={handleSyncData} disabled={isSyncing}>
-          {isSyncing
-            ? <ActivityIndicator size="small" color={colors.white} />
-            : <UploadCloud size={16} color={colors.white} />
-          }
-          <Text style={styles.syncBtnText}>{isSyncing ? 'SYNCING…' : 'SYNC'}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={handleSyncData} disabled={isSyncing}>
+            {isSyncing
+              ? <ActivityIndicator size="small" color={colors.white} />
+              : <UploadCloud size={20} color={colors.white} />
+            }
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={() => setIsSettingsOpen(true)}>
+            <Settings size={20} color={colors.white} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Sync message */}
@@ -790,11 +806,11 @@ export default function AdminScreen({
           return (
             <TouchableOpacity
               key={id}
-              style={[styles.tab, active && styles.tabActive]}
+              style={[styles.tab, active && { borderBottomColor: theme.primary }]}
               onPress={() => setActiveTab(id)}
             >
-              <Icon size={18} color={active ? colors.brandRed : colors.brandBlack + '66'} />
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+              <Icon size={18} color={active ? theme.primary : colors.brandBlack + '66'} />
+              <Text style={[styles.tabText, active && { color: theme.primary }]}>{label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -803,7 +819,87 @@ export default function AdminScreen({
       {/* Content */}
       <View style={styles.content}>{renderContent()}</View>
 
-      {/* Modal */}
+      {/* ── Settings Modal ────────────────────────────────────────────────── */}
+      <Modal visible={isSettingsOpen} transparent animationType="slide" onRequestClose={() => setIsSettingsOpen(false)}>
+        <View style={styles.settingsBackdrop}>
+          <View style={styles.settingsSheet}>
+            {/* Sheet header */}
+            <View style={styles.settingsHeader}>
+              <Text style={styles.settingsTitle}>APP SETTINGS</Text>
+              <TouchableOpacity onPress={() => setIsSettingsOpen(false)}>
+                <X size={20} color={colors.white} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.settingsBody} showsVerticalScrollIndicator={false}>
+              {/* ── Primary accent colour ───────────────────────────────── */}
+              <Text style={styles.settingsSectionLabel}>APP ACCENT COLOR</Text>
+              <View style={styles.swatchRow}>
+                {PRIMARY_SWATCHES.map((color) => {
+                  const active = theme.primary === color;
+                  return (
+                    <TouchableOpacity
+                      key={color}
+                      style={[styles.colorSwatch, { backgroundColor: color }, active && styles.swatchActive]}
+                      onPress={() => setPrimary(color)}
+                      activeOpacity={0.8}
+                    >
+                      {active && <Check size={14} color="#fff" />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* ── Tier card colours ───────────────────────────────────── */}
+              <Text style={[styles.settingsSectionLabel, { marginTop: spacing.xl }]}>CARD COLORS (PRESENTATION)</Text>
+              {(
+                [
+                  { tier: 'E' as const, label: 'Platinum (E)' },
+                  { tier: 'D' as const, label: 'Gold (D)' },
+                  { tier: 'C' as const, label: 'Silver (C)' },
+                  { tier: 'B' as const, label: 'Bronze (B)' },
+                  { tier: 'A' as const, label: 'Iron (A)' },
+                ]
+              ).map(({ tier, label }) => (
+                <View key={tier} style={styles.tierRow}>
+                  <View style={[styles.tierLabel, { backgroundColor: theme.tiers[tier].bar }]}>
+                    <Text style={styles.tierLabelText}>{label}</Text>
+                  </View>
+                  <View style={styles.swatchRow}>
+                    {TIER_SWATCHES[tier].map((preset, idx) => {
+                      const active = theme.tiers[tier].bar === preset.bar;
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          style={[styles.colorSwatch, { backgroundColor: preset.bar }, active && styles.swatchActive]}
+                          onPress={() => setTierColor(tier, preset)}
+                          activeOpacity={0.8}
+                        >
+                          {active && <Check size={14} color="#fff" />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+
+              {/* ── Reset ───────────────────────────────────────────────── */}
+              <TouchableOpacity
+                style={styles.resetBtn}
+                onPress={() => {
+                  resetToDefault();
+                }}
+                activeOpacity={0.8}
+              >
+                <RotateCcw size={16} color={colors.brandBlack} />
+                <Text style={styles.resetBtnText}>RESET TO DEFAULT</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Add / Edit Modal ──────────────────────────────────────────────── */}
       <Modal visible={isAdding || !!editingItem} transparent animationType="fade" onRequestClose={closeModal}>
         <KeyboardAvoidingView style={styles.modalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalCard}>
@@ -1201,6 +1297,106 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansBlack,
     fontSize: fontSize.sm,
     color: colors.white,
+    letterSpacing: 1,
+  },
+
+  // Header right group
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+
+  // Settings modal
+  settingsBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  settingsSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: radius['2xl'],
+    borderTopRightRadius: radius['2xl'],
+    maxHeight: '85%',
+  },
+  settingsHeader: {
+    backgroundColor: colors.brandBlack,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.md,
+    borderTopLeftRadius: radius['2xl'],
+    borderTopRightRadius: radius['2xl'],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  settingsTitle: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.base,
+    color: colors.white,
+    letterSpacing: 1,
+  },
+  settingsBody: {
+    padding: spacing.base,
+  },
+  settingsSectionLabel: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.xs,
+    color: colors.brandBlack + '99',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: spacing.md,
+  },
+  swatchRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.base,
+  },
+  colorSwatch: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  swatchActive: {
+    borderColor: colors.brandBlack,
+  },
+  tierRow: {
+    marginBottom: spacing.base,
+  },
+  tierLabel: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  tierLabelText: {
+    fontFamily: fonts.sansBlack,
+    fontSize: 10,
+    color: colors.white,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  resetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: colors.brandBlack + '33',
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
+    marginBottom: spacing['3xl'],
+  },
+  resetBtnText: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.sm,
+    color: colors.brandBlack,
     letterSpacing: 1,
   },
 });
