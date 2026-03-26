@@ -101,7 +101,7 @@ export default function TaskScreen({
           return (
             <TouchableOpacity
               key={level.id}
-              style={[styles.tab, isActive && styles.tabActive]}
+              style={[styles.tab, isActive && { borderBottomColor: theme.primary }]}
               onPress={() => onLevelSelect(level)}
             >
               <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
@@ -137,8 +137,8 @@ export default function TaskScreen({
         ListHeaderComponent={
           !isTechHandbookMode ? (
             <View style={styles.cloneHeader}>
-              <View style={styles.cloneIconBox}>
-                <CheckCircle2 size={16} color={colors.brandRed} />
+              <View style={[styles.cloneIconBox, { borderColor: theme.primary }]}>
+                <CheckCircle2 size={16} color={theme.primary} />
               </View>
               <Text style={styles.cloneText}>Clone and Edit this Menu</Text>
             </View>
@@ -158,11 +158,11 @@ export default function TaskScreen({
         renderItem={({ item: task }) =>
           isTechHandbookMode ? (
             <View style={styles.handbookItem}>
-              <Text style={styles.handbookTitle}>{task.service_level}</Text>
+              <Text style={[styles.handbookTitle, { borderLeftColor: theme.primary }]}>{task.service_level}</Text>
               <View style={styles.handbookLines}>
                 {task.custom_handbook.split('\n').map((line, i) => (
                   <View key={i} style={styles.handbookLine}>
-                    <View style={styles.handbookBullet} />
+                    <View style={[styles.handbookBullet, { backgroundColor: theme.primary }]} />
                     <Text style={styles.handbookLineText}>{line}</Text>
                   </View>
                 ))}
@@ -176,7 +176,7 @@ export default function TaskScreen({
             >
               <View style={styles.taskItemRow}>
                 <Text style={styles.taskServiceLevel}>
-                  {task.service_level} - <Text style={styles.taskPrice}>${task.price}</Text>
+                  {task.service_level} - <Text style={[styles.taskPrice, { color: theme.primary }]}>${task.price}</Text>
                 </Text>
                 <Text style={styles.taskMeta}>
                   {task.task_code} - {task.estimated_time}h / SA ${task.service_agreement_price}

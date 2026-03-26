@@ -26,7 +26,6 @@ import {
   Save,
   X,
   Settings,
-  Check,
   RotateCcw,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,9 +34,10 @@ import {
   useAppTheme,
   PRIMARY_SWATCHES,
   TIER_SWATCHES,
-  DEFAULT_THEME,
-  TierColorSet,
+  hexToLightBg,
+  hexToDarkText,
 } from '../context/AppTheme';
+import { ColorPicker } from '../components/ColorPicker';
 import { AppUser, PricingData, Category, TaskGroup, Task } from '../types';
 import {
   db,
@@ -485,34 +485,57 @@ export default function AdminScreen({
       setFormSuccess(result.status === 'linked' ? 'User linked successfully.' : 'User created successfully.');
       setTimeout(closeModal, 1500);
     } catch (e: any) {
-      // Fallback without Cloud Function
+      // Fallback without Cloud Function — use a secondary app to avoid signing out admin
       try {
-        const { createUserWithEmailAndPassword } = await import('firebase/auth');
-        const { auth } = await import('../firebase');
-        const { initializeApp } = await import('firebase/app');
-        // Create user with secondary app instance to avoid signing out current admin
+        const {
+          initializeAuth,
+          inMemoryPersistence,
+          createUserWithEmailAndPassword,
+          signInWithEmailAndPassword: signInSecondary,
+        } = await import('firebase/auth');
+        const { initializeApp, deleteApp } = await import('firebase/app');
+
         const secondaryApp = initializeApp(
-          { apiKey: 'AIzaSyAXI8jFegj8rGK_rQ5xVZaSGajjQli3n0I', authDomain: 'gen-lang-client-0799600946.firebaseapp.com', projectId: 'gen-lang-client-0799600946' },
+          {
+            apiKey: 'AIzaSyAXI8jFegj8rGK_rQ5xVZaSGajjQli3n0I',
+            authDomain: 'gen-lang-client-0799600946.firebaseapp.com',
+            projectId: 'gen-lang-client-0799600946',
+          },
           `secondary-${Date.now()}`
         );
-        const { getAuth } = await import('firebase/auth');
-        const { deleteApp } = await import('firebase/app');
-        const secAuth = getAuth(secondaryApp);
-        const cred = await createUserWithEmailAndPassword(secAuth, user.email!, user.password!);
+        // Use inMemoryPersistence to suppress AsyncStorage warning on temp app
+        const secAuth = initializeAuth(secondaryApp, { persistence: inMemoryPersistence });
+
+        let uid: string;
+        try {
+          // Try creating the account first
+          const cred = await createUserWithEmailAndPassword(secAuth, user.email!, user.password!);
+          uid = cred.user.uid;
+        } catch (createErr: any) {
+          if (createErr?.code === 'auth/email-already-in-use') {
+            // Account exists — sign in to get the existing UID
+            const cred = await signInSecondary(secAuth, user.email!, user.password!);
+            uid = cred.user.uid;
+          } else {
+            throw createErr;
+          }
+        }
+
         await deleteApp(secondaryApp);
+
         const { password, ...userData } = user;
-        await setDoc(doc(db, 'users', cred.user.uid), {
+        await setDoc(doc(db, 'users', uid), {
           ...userData,
-          uid: cred.user.uid,
+          uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-        setFormSuccess('User created successfully.');
+        setFormSuccess('User saved successfully.');
         setTimeout(closeModal, 1500);
       } catch (fallback: any) {
         const code = fallback?.code as string;
-        if (code === 'auth/email-already-in-use') {
-          setFormError('Email already in use. Deploy the Cloud Function to link it.');
+        if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+          setFormError('This email already has an account. The password you entered is incorrect — enter the existing password to link it.');
         } else if (code === 'auth/weak-password') {
           setFormError('Password must be at least 6 characters.');
         } else {
@@ -833,25 +856,15 @@ export default function AdminScreen({
 
             <ScrollView style={styles.settingsBody} showsVerticalScrollIndicator={false}>
               {/* ── Primary accent colour ───────────────────────────────── */}
-              <Text style={styles.settingsSectionLabel}>APP ACCENT COLOR</Text>
-              <View style={styles.swatchRow}>
-                {PRIMARY_SWATCHES.map((color) => {
-                  const active = theme.primary === color;
-                  return (
-                    <TouchableOpacity
-                      key={color}
-                      style={[styles.colorSwatch, { backgroundColor: color }, active && styles.swatchActive]}
-                      onPress={() => setPrimary(color)}
-                      activeOpacity={0.8}
-                    >
-                      {active && <Check size={14} color="#fff" />}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <ColorPicker
+                label="APP ACCENT COLOR"
+                currentColor={theme.primary}
+                presets={PRIMARY_SWATCHES}
+                onSelect={setPrimary}
+              />
 
               {/* ── Tier card colours ───────────────────────────────────── */}
-              <Text style={[styles.settingsSectionLabel, { marginTop: spacing.xl }]}>CARD COLORS (PRESENTATION)</Text>
+              <Text style={styles.settingsSectionLabel}>CARD COLORS (PRESENTATION)</Text>
               {(
                 [
                   { tier: 'E' as const, label: 'Platinum (E)' },
@@ -865,30 +878,28 @@ export default function AdminScreen({
                   <View style={[styles.tierLabel, { backgroundColor: theme.tiers[tier].bar }]}>
                     <Text style={styles.tierLabelText}>{label}</Text>
                   </View>
-                  <View style={styles.swatchRow}>
-                    {TIER_SWATCHES[tier].map((preset, idx) => {
-                      const active = theme.tiers[tier].bar === preset.bar;
-                      return (
-                        <TouchableOpacity
-                          key={idx}
-                          style={[styles.colorSwatch, { backgroundColor: preset.bar }, active && styles.swatchActive]}
-                          onPress={() => setTierColor(tier, preset)}
-                          activeOpacity={0.8}
-                        >
-                          {active && <Check size={14} color="#fff" />}
-                        </TouchableOpacity>
+                  <ColorPicker
+                    label=""
+                    currentColor={theme.tiers[tier].bar}
+                    presets={TIER_SWATCHES[tier].map((s) => s.bar)}
+                    onSelect={(hex) => {
+                      const preset = TIER_SWATCHES[tier].find(
+                        (s) => s.bar.toLowerCase() === hex.toLowerCase()
                       );
-                    })}
-                  </View>
+                      setTierColor(tier, preset ?? {
+                        bar: hex,
+                        bg: hexToLightBg(hex),
+                        text: hexToDarkText(hex),
+                      });
+                    }}
+                  />
                 </View>
               ))}
 
               {/* ── Reset ───────────────────────────────────────────────── */}
               <TouchableOpacity
                 style={styles.resetBtn}
-                onPress={() => {
-                  resetToDefault();
-                }}
+                onPress={resetToDefault}
                 activeOpacity={0.8}
               >
                 <RotateCcw size={16} color={colors.brandBlack} />

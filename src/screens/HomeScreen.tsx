@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '../components/Header';
 import { MenuOverlay } from '../components/MenuOverlay';
 import { colors, fonts, spacing, fontSize, radius } from '../theme';
+import { useAppTheme } from '../context/AppTheme';
 import { Screen, AppUser } from '../types';
 
 interface HomeScreenProps {
@@ -27,6 +28,7 @@ export default function HomeScreen({
 }: HomeScreenProps) {
   const insets = useSafeAreaInsets();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { theme } = useAppTheme();
 
   return (
     <View style={styles.container}>
@@ -40,10 +42,10 @@ export default function HomeScreen({
 
         {/* Card */}
         <View style={styles.card}>
-          <View style={styles.cardTopBar} />
+          <View style={[styles.cardTopBar, { backgroundColor: theme.primary }]} />
           <Text style={styles.cardTitle}>Electrical</Text>
           <TouchableOpacity
-            style={styles.accessBtn}
+            style={[styles.accessBtn, { backgroundColor: theme.primary }]}
             onPress={onAccessMenu}
             activeOpacity={0.85}
           >

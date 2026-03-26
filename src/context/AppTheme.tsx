@@ -32,15 +32,31 @@ export const DEFAULT_THEME: AppThemeColors = {
 // ─── Colour palettes shown in the settings modal ─────────────────────────────
 
 export const PRIMARY_SWATCHES = [
-  '#a70707', // default dark red
-  '#dc2626', // bright red
-  '#1d4ed8', // blue
-  '#15803d', // green
-  '#7e22ce', // purple
-  '#c2410c', // orange
-  '#0891b2', // cyan
-  '#be185d', // pink
+  '#a70707', '#dc2626', '#ef4444', '#f97316',
+  '#eab308', '#22c55e', '#15803d', '#14b8a6',
+  '#06b6d4', '#3b82f6', '#1d4ed8', '#7c3aed',
+  '#a855f7', '#ec4899', '#be185d', '#374151',
 ];
+
+/** Auto-generate a very light background tint from a bar/accent colour */
+export function hexToLightBg(hex: string): string {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return '#f9fafb';
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const h = (n: number) => Math.round(n).toString(16).padStart(2, '0');
+  return `#${h(r * 0.08 + 255 * 0.92)}${h(g * 0.08 + 255 * 0.92)}${h(b * 0.08 + 255 * 0.92)}`;
+}
+
+/** Auto-generate a dark text colour from a bar/accent colour */
+export function hexToDarkText(hex: string): string {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return '#374151';
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const h = (n: number) => Math.round(n).toString(16).padStart(2, '0');
+  return `#${h(r * 0.55)}${h(g * 0.55)}${h(b * 0.55)}`;
+}
 
 export const TIER_SWATCHES: Record<keyof AppThemeColors['tiers'], TierColorSet[]> = {
   E: [

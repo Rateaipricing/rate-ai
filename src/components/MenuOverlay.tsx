@@ -12,6 +12,7 @@ import {
 import { Home, User, LogOut, X, RefreshCw } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, spacing, fontSize, radius } from '../theme';
+import { useAppTheme } from '../context/AppTheme';
 import { Screen, AppUser } from '../types';
 
 const MENU_WIDTH = Math.min(Dimensions.get('window').width * 0.8, 300);
@@ -38,6 +39,7 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({
   isRefreshing,
 }) => {
   const insets = useSafeAreaInsets();
+  const { theme } = useAppTheme();
   const slideAnim = useRef(new Animated.Value(-MENU_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const [hasBeenOpened, setHasBeenOpened] = useState(false);
@@ -98,18 +100,18 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({
         {/* Header */}
         <View style={styles.panelHeader}>
           <View>
-            <Text style={styles.panelTitleMain}>A-TEAM</Text>
+            <Text style={[styles.panelTitleMain, { color: theme.primary }]}>A-TEAM</Text>
             <Text style={styles.panelTitleSub}>Electricians</Text>
           </View>
           <TouchableOpacity onPress={onClose}>
-            <X size={24} color={colors.brandRed} />
+            <X size={24} color={theme.primary} />
           </TouchableOpacity>
         </View>
 
         {/* User info */}
         {user && (
           <View style={styles.userInfo}>
-            <View style={styles.avatar}>
+            <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
               <Text style={styles.avatarText}>{user.name.charAt(0).toUpperCase()}</Text>
             </View>
             <View style={styles.userText}>
@@ -154,10 +156,10 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({
             disabled={isLoggingOut}
           >
             {isLoggingOut
-              ? <ActivityIndicator size="small" color={colors.brandRed} />
-              : <LogOut size={20} color={colors.brandRed} />
+              ? <ActivityIndicator size="small" color={theme.primary} />
+              : <LogOut size={20} color={theme.primary} />
             }
-            <Text style={styles.logoutText}>
+            <Text style={[styles.logoutText, { color: theme.primary }]}>
               {isLoggingOut ? 'LOGGING OUT...' : 'LOGOUT'}
             </Text>
           </TouchableOpacity>
