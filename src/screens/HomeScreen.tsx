@@ -15,6 +15,8 @@ interface HomeScreenProps {
   isLoggingOut: boolean;
   onRefresh: () => void;
   isRefreshing: boolean;
+  cartCount?: number;
+  onCartPress?: () => void;
 }
 
 export default function HomeScreen({
@@ -25,6 +27,8 @@ export default function HomeScreen({
   isLoggingOut,
   onRefresh,
   isRefreshing,
+  cartCount,
+  onCartPress,
 }: HomeScreenProps) {
   const insets = useSafeAreaInsets();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -32,7 +36,7 @@ export default function HomeScreen({
 
   return (
     <View style={styles.container}>
-      <Header onMenuPress={() => setIsMenuOpen(true)} />
+      <Header onMenuPress={() => setIsMenuOpen(true)} cartCount={cartCount} onCartPress={onCartPress} />
 
       <View style={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}>
         <View style={styles.headingArea}>

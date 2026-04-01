@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, spacing, fontSize, radius } from '../theme';
 import { useAppTheme } from '../context/AppTheme';
 import { Screen, AppUser } from '../types';
+import { Logo } from './Logo';
 
 const MENU_WIDTH = Math.min(Dimensions.get('window').width * 0.8, 300);
 
@@ -99,10 +100,7 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({
       >
         {/* Header */}
         <View style={styles.panelHeader}>
-          <View>
-            <Text style={[styles.panelTitleMain, { color: theme.primary }]}>A-TEAM</Text>
-            <Text style={styles.panelTitleSub}>Electricians</Text>
-          </View>
+          <Logo width={80} variant="white" />
           <TouchableOpacity onPress={onClose}>
             <X size={24} color={theme.primary} />
           </TouchableOpacity>
@@ -193,20 +191,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  panelTitleMain: {
-    fontFamily: fonts.display,
-    fontSize: fontSize.xl,
-    color: colors.brandRed,
-    letterSpacing: -1,
-    textTransform: 'uppercase',
-  },
-  panelTitleSub: {
-    fontFamily: fonts.sansLight,
-    fontSize: 8,
-    color: colors.brandPlatinum,
-    letterSpacing: 4,
-    textTransform: 'uppercase',
   },
   userInfo: {
     padding: spacing.xl,

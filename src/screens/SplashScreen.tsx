@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Logo } from '../components/Logo';
 import { colors } from '../theme';
+import { Logo } from '../components/Logo';
 
 export default function SplashScreen() {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -42,7 +42,7 @@ export default function SplashScreen() {
           },
         ]}
       >
-        <Logo width={240} variant="white" />
+        <Logo width={220} variant="white" />
 
         <Animated.View
           style={[

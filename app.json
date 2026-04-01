@@ -1,25 +1,79 @@
 {
   "expo": {
-    "name": "A-Team Electricians",
-    "slug": "a-team-electricians",
+    "name": "Rate AI",
+    "slug": "rate-ai-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#161a1d",
+    "icon": "./Logos/dark-mode-solid-logo.png",
+    "splash": {
+      "image": "./Logos/dark-mode-adaptive.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#161a1d"
+    },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.ateamelectricians.app"
+      "bundleIdentifier": "com.rateai.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          }
+        ],
+        "NSPrivacyCollectedDataTypes": [
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeEmailAddress",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeName",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeUserID",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./Logos/dark-mode-adaptive.png",
         "backgroundColor": "#161a1d"
       },
-      "package": "com.ateamelectricians.app"
+      "package": "com.rateai.app",
+      "versionCode": 1
     },
     "plugins": [
       "expo-font",
       "expo-asset"
     ],
-    "newArchEnabled": false
+    "newArchEnabled": false,
+    "extra": {
+      "eas": {
+        "projectId": "12c174eb-6ec8-4898-8b2a-78bd5b48576f"
+      }
+    },
+    "owner": "shehbazali1639"
   }
 }

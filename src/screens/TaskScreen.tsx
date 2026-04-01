@@ -11,7 +11,7 @@ import {
 import { CheckCircle2 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { MenuOverlay } from '../components/MenuOverlay';
-import { colors, fonts, spacing, fontSize, radius } from '../theme';
+import { colors, fonts, spacing, fontSize } from '../theme';
 import { useAppTheme } from '../context/AppTheme';
 import { Category, TaskGroup, TaskLevel, Task, Screen, AppUser } from '../types';
 
@@ -33,6 +33,8 @@ interface TaskScreenProps {
   isLoggingOut: boolean;
   onRefresh: () => void;
   isRefreshing: boolean;
+  cartCount?: number;
+  onCartPress?: () => void;
 }
 
 export default function TaskScreen({
@@ -53,6 +55,8 @@ export default function TaskScreen({
   isLoggingOut,
   onRefresh,
   isRefreshing,
+  cartCount,
+  onCartPress,
 }: TaskScreenProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme } = useAppTheme();
@@ -60,7 +64,7 @@ export default function TaskScreen({
 
   return (
     <View style={styles.container}>
-      <Header onMenuPress={() => setIsMenuOpen(true)} />
+      <Header onMenuPress={() => setIsMenuOpen(true)} cartCount={cartCount} onCartPress={onCartPress} />
 
       {/* Breadcrumb */}
       <View style={styles.breadcrumb}>

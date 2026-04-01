@@ -20,6 +20,8 @@ interface TaskGroupScreenProps {
   isLoggingOut: boolean;
   onRefresh: () => void;
   isRefreshing: boolean;
+  cartCount?: number;
+  onCartPress?: () => void;
 }
 
 interface FlatItem {
@@ -41,6 +43,8 @@ export default function TaskGroupScreen({
   isLoggingOut,
   onRefresh,
   isRefreshing,
+  cartCount,
+  onCartPress,
 }: TaskGroupScreenProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme } = useAppTheme();
@@ -55,7 +59,7 @@ export default function TaskGroupScreen({
 
   return (
     <View style={styles.container}>
-      <Header onMenuPress={() => setIsMenuOpen(true)} />
+      <Header onMenuPress={() => setIsMenuOpen(true)} cartCount={cartCount} onCartPress={onCartPress} />
 
       {/* Breadcrumb */}
       <View style={styles.breadcrumb}>

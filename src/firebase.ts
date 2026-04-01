@@ -5,6 +5,7 @@ import {
   signOut,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 // React Native persistence helper (available in firebase 9.3+)
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -54,6 +55,7 @@ export {
   signOut,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   collection,
   doc,
   getDoc,

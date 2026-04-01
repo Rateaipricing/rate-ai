@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, StatusBar, Platform, BackHandler } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, StatusBar, Platform, BackHandler } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import {
@@ -37,10 +37,13 @@ import {
   setAdminSession,
   getAdminSession,
   clearAllCache,
+  saveCart,
+  loadCart,
+  clearCart,
 } from './storage';
 
-import { Screen, Category, TaskGroup, TaskLevel, Task, PricingData, AppUser } from './types';
-import { colors } from './theme';
+import { Screen, Category, TaskGroup, TaskLevel, Task, PricingData, AppUser, CartItem } from './types';
+import { colors, fonts, fontSize, spacing } from './theme';
 import { AppThemeProvider } from './context/AppTheme';
 
 import SplashScreenComponent from './screens/SplashScreen';
@@ -50,6 +53,7 @@ import CategoryScreen from './screens/CategoryScreen';
 import TaskGroupScreen from './screens/TaskGroupScreen';
 import TaskScreen from './screens/TaskScreen';
 import PresentationScreen from './screens/PresentationScreen';
+import TotalTasksScreen from './screens/TotalTasksScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import AdminScreen from './screens/AdminScreen';
@@ -75,6 +79,8 @@ export default function App() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
+  const [syncFailed, setSyncFailed] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [pricingData, setPricingData] = useState<PricingData>({
     categories: [],
@@ -89,6 +95,7 @@ export default function App() {
     },
   });
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   // Navigation state
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -103,6 +110,18 @@ export default function App() {
     }
   }, [fontsLoaded]);
 
+  // ── Persist cart to AsyncStorage on every change ─────────────────────────
+  useEffect(() => {
+    saveCart(cartItems);
+  }, [cartItems]);
+
+  // ── Auto-dismiss sync failed banner after 4 s ─────────────────────────────
+  useEffect(() => {
+    if (!syncFailed) return;
+    const t = setTimeout(() => setSyncFailed(false), 4000);
+    return () => clearTimeout(t);
+  }, [syncFailed]);
+
   // ── Load cached data first (offline support) ──────────────────────────────
   useEffect(() => {
     (async () => {
@@ -112,6 +131,12 @@ export default function App() {
       const cachedCategories = await getCachedCategories();
       if (cachedCategories && cachedCategories.length > 0) {
         setPricingData((prev) => ({ ...prev, categories: cachedCategories }));
+        setDataReady(true); // Have cached data — no spinner needed
+      }
+
+      const savedCart = await loadCart();
+      if (savedCart.length > 0) {
+        setCartItems(savedCart);
       }
     })();
   }, []);
@@ -130,6 +155,10 @@ export default function App() {
             const userData = { ...userDoc.data(), uid: firebaseUser.uid } as AppUser;
             setUser(userData);
             await cacheUser(userData);
+            if (userData.role === 'Admin') {
+              setIsAdmin(true);
+              await setAdminSession(true);
+            }
           } else if (firebaseUser.email?.toLowerCase() === SPECIAL_ADMIN_EMAIL) {
             const adminData: AppUser = {
               name: firebaseUser.displayName || 'Admin',
@@ -144,6 +173,8 @@ export default function App() {
             );
             setUser(adminData);
             await cacheUser(adminData);
+            setIsAdmin(true);
+            await setAdminSession(true);
           } else {
             await signOut(auth);
             setUser(null);
@@ -169,17 +200,29 @@ export default function App() {
   useEffect(() => {
     if (!isAuthReady || (!auth.currentUser && !isAdmin)) return;
 
+    // 6-second safety timeout — if Firebase hasn't responded, fall back to
+    // whatever we have (cache) and show the sync-failed banner.
+    const timeoutId = setTimeout(() => {
+      setDataReady(true);
+      setSyncFailed(true);
+    }, 6000);
+
     const unsubCategories = onSnapshot(
       collection(db, 'categories'),
       (snapshot) => {
+        clearTimeout(timeoutId);
         const cats = snapshot.docs
           .map((d) => ({ ...d.data(), id: d.id } as Category))
           .sort((a, b) => (a.prefix ?? '').localeCompare(b.prefix ?? ''));
         setPricingData((prev) => ({ ...prev, categories: cats }));
         cacheCategories(cats);
+        setDataReady(true);
       },
       () => {
-        // On error (offline), keep cached data - already loaded above
+        // Offline / permission error — fall back to cached data
+        clearTimeout(timeoutId);
+        setDataReady(true);
+        setSyncFailed(true);
       }
     );
 
@@ -195,6 +238,7 @@ export default function App() {
     }
 
     return () => {
+      clearTimeout(timeoutId);
       unsubCategories();
       unsubUsers();
     };
@@ -259,6 +303,9 @@ export default function App() {
           return true;
         case 'admin':
           return true;
+        case 'total_tasks':
+          setCurrentScreen('presentation');
+          return true;
         default:
           return false;
       }
@@ -292,14 +339,6 @@ export default function App() {
     }
   };
 
-  const handleAdminLogin = async () => {
-    setIsLoggingIn(true);
-    await setAdminSession(true);
-    setIsAdmin(true);
-    setCurrentScreen('admin');
-    // isLoggingIn cleared by currentScreen useEffect
-  };
-
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await new Promise((r) => setTimeout(r, 800));
@@ -307,8 +346,12 @@ export default function App() {
       await signOut(auth);
     } catch {}
     await clearAllCache();
+    await clearCart();
     setUser(null);
     setIsAdmin(false);
+    setCartItems([]);
+    setDataReady(false);
+    setSyncFailed(false);
     setIsLoggingOut(false);
     setCurrentScreen('login');
   };
@@ -330,6 +373,14 @@ export default function App() {
     // Delete all existing categories and re-upload from Firestore source
     // In mobile, we just force-refresh from Firestore
     await handleRefresh();
+  };
+
+  const handleAddToCart = (item: CartItem) => {
+    setCartItems((prev) => [...prev, item]);
+  };
+
+  const handleRemoveFromCart = (id: string) => {
+    setCartItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleCategorySelect = (category: Category) => {
@@ -359,6 +410,8 @@ export default function App() {
     isLoggingOut,
     onRefresh: handleRefresh,
     isRefreshing,
+    cartCount: cartItems.length,
+    onCartPress: () => setCurrentScreen('total_tasks'),
   };
 
   // ── Render screens ────────────────────────────────────────────────────────
@@ -371,7 +424,6 @@ export default function App() {
         return (
           <LoginScreen
             onLogin={handleLogin}
-            onAdminLogin={handleAdminLogin}
             externalError={loginError}
             isLoggingIn={isLoggingIn}
           />
@@ -442,9 +494,22 @@ export default function App() {
           <PresentationScreen
             level={selectedLevel}
             onBack={() => setCurrentScreen('tasks')}
+            onAddToCart={handleAddToCart}
+            onRemoveFromCart={handleRemoveFromCart}
+            cartItems={cartItems}
             {...menuProps}
           />
         ) : null;
+
+      case 'total_tasks':
+        return (
+          <TotalTasksScreen
+            cartItems={cartItems}
+            onRemoveItem={handleRemoveFromCart}
+            onBack={() => setCurrentScreen('presentation')}
+            onAddMore={() => setCurrentScreen('categories')}
+          />
+        );
 
       case 'profile':
         return user ? (
@@ -484,6 +549,24 @@ export default function App() {
         />
         <View style={styles.root} onLayout={onLayoutRootView}>
           {renderScreen()}
+
+          {/* Data loading overlay — shown after login until Firebase data arrives */}
+          {!dataReady && currentScreen !== 'splash' && currentScreen !== 'login' && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color={colors.brandRed} />
+              <Text style={styles.loadingBrand}>RATE AI</Text>
+              <Text style={styles.loadingLabel}>Loading data...</Text>
+            </View>
+          )}
+
+          {/* Sync failed banner — shown briefly when Firebase sync fails */}
+          {syncFailed && (
+            <View style={styles.syncBanner}>
+              <View style={styles.syncBannerDot} />
+              <Text style={styles.syncBannerText}>Data Syncing Failed</Text>
+              <Text style={styles.syncBannerSub}>Showing cached data</Text>
+            </View>
+          )}
         </View>
       </SafeAreaProvider>
     </AppThemeProvider>
@@ -494,5 +577,67 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.brandBlack,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(22,26,29,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.base,
+    zIndex: 999,
+  },
+  loadingBrand: {
+    fontFamily: fonts.display,
+    fontSize: 36,
+    color: colors.white,
+    letterSpacing: -1,
+    marginTop: spacing.sm,
+  },
+  loadingLabel: {
+    fontFamily: fonts.sansBold,
+    fontSize: fontSize.xs,
+    color: colors.white + '88',
+    textTransform: 'uppercase',
+    letterSpacing: 3,
+  },
+  syncBanner: {
+    position: 'absolute',
+    bottom: 40,
+    left: spacing.base,
+    right: spacing.base,
+    backgroundColor: '#7f1d1d',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.base,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 998,
+  },
+  syncBannerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#f87171',
+  },
+  syncBannerText: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.sm,
+    color: colors.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  syncBannerSub: {
+    fontFamily: fonts.sans,
+    fontSize: fontSize['2xs'],
+    color: colors.white + 'aa',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 });

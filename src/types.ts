@@ -62,7 +62,14 @@ export type Screen =
   | 'presentation'
   | 'profile'
   | 'settings'
-  | 'admin';
+  | 'admin'
+  | 'total_tasks';
+
+export interface CartItem {
+  id: string;
+  task: Task;
+  levelPrefix: string;
+}
 
 export interface AppUser {
   name: string;

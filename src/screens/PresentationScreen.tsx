@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CheckCircle2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '../components/Header';
 import { MenuOverlay } from '../components/MenuOverlay';
-import { colors, fonts, spacing, fontSize, radius } from '../theme';
+import { colors, fonts, spacing, fontSize } from '../theme';
 import { useAppTheme } from '../context/AppTheme';
-import { TaskLevel, Screen, AppUser } from '../types';
+import { Task, TaskLevel, Screen, AppUser, CartItem } from '../types';
 
 interface PresentationScreenProps {
   level: TaskLevel;
@@ -17,6 +17,11 @@ interface PresentationScreenProps {
   isLoggingOut: boolean;
   onRefresh: () => void;
   isRefreshing: boolean;
+  onAddToCart: (item: CartItem) => void;
+  onRemoveFromCart: (id: string) => void;
+  cartItems: CartItem[];
+  cartCount?: number;
+  onCartPress?: () => void;
 }
 
 export default function PresentationScreen({
@@ -28,6 +33,11 @@ export default function PresentationScreen({
   isLoggingOut,
   onRefresh,
   isRefreshing,
+  onAddToCart,
+  onRemoveFromCart,
+  cartItems,
+  cartCount,
+  onCartPress,
 }: PresentationScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useAppTheme();
@@ -39,68 +49,85 @@ export default function PresentationScreen({
     return theme.tiers[key] ?? { bg: colors.white, bar: colors.brandBlack, text: colors.brandBlack };
   };
 
+  // Find cart item for a given task code on this level
+  const getCartItem = (taskCode: string): CartItem | undefined =>
+    cartItems.find(
+      (item) => item.task.task_code === taskCode && item.levelPrefix === level.prefix
+    );
+
+  const handleCardPress = (task: Task) => {
+    const existing = getCartItem(task.task_code);
+    if (existing) {
+      onRemoveFromCart(existing.id);
+    } else {
+      onAddToCart({ id: `${task.task_code}-${Date.now()}`, task, levelPrefix: level.prefix });
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Header onMenuPress={() => setIsMenuOpen(true)} />
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <Header onMenuPress={() => setIsMenuOpen(true)} cartCount={cartCount} onCartPress={onCartPress} />
 
-      {/* Sub-header */}
-      <View style={styles.subHeader}>
-        <View style={styles.subHeaderIcon}>
-          <View style={styles.subHeaderIconInner} />
-        </View>
-        <Text style={styles.subHeaderTitle}>Choose an option for {level.prefix}</Text>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.cardsContainer}>
         {sortedTasks.map((task) => {
           const tierCfg = getTierConfig(task.tier);
           const isE = task.tier.toUpperCase() === 'E';
+          const selected = !!getCartItem(task.task_code);
+
           return (
-            <View
+            <TouchableOpacity
               key={task.task_code}
-              style={[styles.card, { backgroundColor: tierCfg.bg }]}
+              style={[
+                styles.card,
+                { backgroundColor: tierCfg.bg },
+                selected && { borderColor: tierCfg.bar, borderWidth: 2 },
+              ]}
+              onPress={() => handleCardPress(task)}
+              activeOpacity={0.75}
             >
-              {/* Left color bar */}
-              <View style={[styles.colorBar, { backgroundColor: tierCfg.bar }]} />
+              {/* Left color bar — wider when selected */}
+              <View style={[styles.colorBar, { backgroundColor: tierCfg.bar, width: selected ? 12 : 7 }]} />
 
               <View style={styles.cardContent}>
                 <View style={styles.cardLeft}>
                   <View style={styles.serviceLevelRow}>
-                    {isE && (
-                      <CheckCircle2 size={24} color={tierCfg.bar} fill={tierCfg.bar} />
+                    {isE && !selected && (
+                      <CheckCircle2 size={18} color={tierCfg.bar} fill={tierCfg.bar} />
                     )}
-                    <Text style={styles.serviceLevel}>{task.service_level}</Text>
+                    <Text style={styles.serviceLevel} numberOfLines={1}>{task.service_level}</Text>
                   </View>
 
-                  <Text style={styles.taskCodeName}>
+                  <Text style={styles.taskCodeName} numberOfLines={1}>
                     {task.task_code} {task.task_name}
                   </Text>
 
                   <View style={styles.descriptionLines}>
-                    {task.task_description.split('\n').map((line, i) => (
-                      <Text key={i} style={styles.descriptionLine}>{line}</Text>
+                    {task.task_description.split('\n').slice(0, 3).map((line, i) => (
+                      <Text key={i} style={styles.descriptionLine} numberOfLines={1}>{line}</Text>
                     ))}
                   </View>
                 </View>
 
                 <View style={styles.cardRight}>
-                  <View style={styles.priceBox}>
-                    <Text style={styles.price}>${task.price}</Text>
+                  <View style={[styles.priceBox, selected && { backgroundColor: tierCfg.bar, borderColor: tierCfg.bar }]}>
+                    <Text style={[styles.price, selected && { color: colors.white }]}>
+                      ${task.price}
+                    </Text>
                   </View>
-                  <Text style={styles.warranty}>{task.warranty}</Text>
+                  <Text style={styles.warranty} numberOfLines={2}>{task.warranty}</Text>
                 </View>
               </View>
-            </View>
+
+              {/* Checkmark badge — top-right corner when selected */}
+              {selected && (
+                <View style={[styles.checkBadge, { backgroundColor: tierCfg.bar }]}>
+                  <CheckCircle2 size={16} color={colors.white} fill={tierCfg.bar} />
+                </View>
+              )}
+            </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </View>
 
       <MenuOverlay
         isOpen={isMenuOpen}
@@ -118,122 +145,97 @@ export default function PresentationScreen({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.brandPlatinum },
-  subHeader: {
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.brandPlatinum,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  subHeaderIcon: {
-    backgroundColor: colors.brandBlack,
-    padding: 6,
-    borderRadius: 2,
-  },
-  subHeaderIconInner: {
-    borderWidth: 1,
-    borderColor: colors.white,
-    width: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  subHeaderTitle: {
-    fontFamily: fonts.sansBlack,
-    fontSize: fontSize.base,
-    color: colors.brandBlack,
-    textTransform: 'uppercase',
-    letterSpacing: -0.5,
+  cardsContainer: {
     flex: 1,
   },
-  scrollView: { flex: 1 },
-  scrollContent: {
-    gap: 0,
-  },
   card: {
+    flex: 1,
     borderRadius: 0,
     overflow: 'hidden',
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: colors.brandPlatinum,
+    borderWidth: 0,
   },
   colorBar: {
-    width: 8,
     flexShrink: 0,
   },
   cardContent: {
     flex: 1,
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   cardLeft: {
     flex: 1,
-    gap: spacing.sm,
+    gap: 3,
   },
   serviceLevelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   serviceLevel: {
     fontFamily: fonts.sansBlack,
-    fontSize: fontSize.base,
+    fontSize: fontSize.sm,
     color: colors.brandBlack,
     textTransform: 'uppercase',
     letterSpacing: -0.5,
+    flex: 1,
   },
   taskCodeName: {
     fontFamily: fonts.sansBlack,
-    fontSize: fontSize.sm,
+    fontSize: 10,
     color: colors.brandBlack,
     textTransform: 'uppercase',
     letterSpacing: -0.3,
   },
   descriptionLines: {
-    gap: 4,
+    gap: 2,
   },
   descriptionLine: {
     fontFamily: fonts.sansBold,
-    fontSize: fontSize.xs,
+    fontSize: 10,
     color: colors.brandBlack + 'cc',
   },
   cardRight: {
     alignItems: 'flex-end',
-    gap: spacing.sm,
-    minWidth: 100,
+    gap: 4,
+    minWidth: 80,
   },
   priceBox: {
     backgroundColor: colors.white,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 3,
+    borderRadius: 3,
     borderWidth: 1,
     borderColor: colors.brandPlatinum,
   },
   price: {
     fontFamily: fonts.sansBlack,
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     color: colors.brandBlack,
     letterSpacing: -0.5,
   },
   warranty: {
     fontFamily: fonts.sansBlack,
-    fontSize: 10,
+    fontSize: 9,
     color: colors.brandBlack + '99',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
     textAlign: 'right',
+  },
+  checkBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomLeftRadius: 6,
   },
 });

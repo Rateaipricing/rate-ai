@@ -5,14 +5,17 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Switch,
+  Alert,
+  Linking,
+  ActivityIndicator,
 } from 'react-native';
-import { Bell, Shield, HelpCircle, Smartphone } from 'lucide-react-native';
+import { Shield, HelpCircle, Smartphone, Mail, FileText } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '../components/Header';
 import { MenuOverlay } from '../components/MenuOverlay';
 import { colors, fonts, spacing, fontSize, radius } from '../theme';
 import { Screen, AppUser } from '../types';
+import { auth, sendPasswordResetEmail } from '../firebase';
 
 interface SettingsScreenProps {
   onBack: () => void;
@@ -35,8 +38,47 @@ export default function SettingsScreen({
 }: SettingsScreenProps) {
   const insets = useSafeAreaInsets();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+
+  const handleChangePassword = async () => {
+    const email = user?.email ?? auth.currentUser?.email;
+    if (!email) {
+      Alert.alert('Error', 'No email address found for your account.');
+      return;
+    }
+    Alert.alert(
+      'Reset Password',
+      `A password reset link will be sent to:\n\n${email}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Link',
+          onPress: async () => {
+            setIsSendingReset(true);
+            try {
+              await sendPasswordResetEmail(auth, email);
+              Alert.alert(
+                'Email Sent',
+                'Check your inbox for the password reset link.',
+              );
+            } catch {
+              Alert.alert('Error', 'Failed to send reset email. Please try again.');
+            } finally {
+              setIsSendingReset(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleHelpAndSupport = () => {
+    Linking.openURL('mailto:support@rateai.app?subject=Rate%20AI%20Support');
+  };
+
+  const handlePrivacyPolicy = () => {
+    Linking.openURL('https://shehbazali1639.github.io/a-team-electricians/privacy-policy.html');
+  };
 
   return (
     <View style={styles.container}>
@@ -50,67 +92,63 @@ export default function SettingsScreen({
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionTitle}>Preferences</Text>
-
-        <View style={styles.settingsCard}>
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconBox}>
-              <Bell size={20} color={colors.brandBlack + '66'} />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Push Notifications</Text>
-              <Text style={styles.settingDesc}>Receive job and update alerts</Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: colors.brandPlatinum, true: colors.brandRed }}
-              thumbColor={colors.white}
-            />
-          </View>
-
-          <View style={[styles.settingRow, styles.settingRowBorder]}>
-            <View style={styles.settingIconBox}>
-              <Smartphone size={20} color={colors.brandBlack + '66'} />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Dark Mode</Text>
-              <Text style={styles.settingDesc}>Enable dark theme</Text>
-            </View>
-            <Switch
-              value={darkModeEnabled}
-              onValueChange={setDarkModeEnabled}
-              trackColor={{ false: colors.brandPlatinum, true: colors.brandRed }}
-              thumbColor={colors.white}
-            />
-          </View>
-        </View>
-
         <Text style={styles.sectionTitle}>Security</Text>
 
         <View style={styles.settingsCard}>
-          <TouchableOpacity style={styles.settingRow} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={handleChangePassword}
+            disabled={isSendingReset}
+          >
             <View style={styles.settingIconBox}>
-              <Shield size={20} color={colors.brandBlack + '66'} />
+              {isSendingReset
+                ? <ActivityIndicator size="small" color={colors.brandBlack} />
+                : <Shield size={20} color={colors.brandBlack + '66'} />
+              }
             </View>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Change Password</Text>
-              <Text style={styles.settingDesc}>Update your account password</Text>
+              <Text style={styles.settingDesc}>Send a reset link to your email</Text>
             </View>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionTitle}>Support</Text>
+
+        <View style={styles.settingsCard}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={handleHelpAndSupport}
+          >
+            <View style={styles.settingIconBox}>
+              <HelpCircle size={20} color={colors.brandBlack + '66'} />
+            </View>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Help & Support</Text>
+              <Text style={styles.settingDesc}>Email us at support@rateai.app</Text>
+            </View>
+            <Mail size={16} color={colors.brandBlack + '44'} />
           </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionTitle}>About</Text>
 
         <View style={styles.settingsCard}>
-          <TouchableOpacity style={styles.settingRow} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            activeOpacity={0.7}
+            onPress={handlePrivacyPolicy}
+          >
             <View style={styles.settingIconBox}>
-              <HelpCircle size={20} color={colors.brandBlack + '66'} />
+              <FileText size={20} color={colors.brandBlack + '66'} />
             </View>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Help & Support</Text>
-              <Text style={styles.settingDesc}>Get help with the app</Text>
+              <Text style={styles.settingLabel}>Privacy Policy</Text>
+              <Text style={styles.settingDesc}>How we handle your data</Text>
             </View>
+            <Mail size={16} color={colors.brandBlack + '44'} />
           </TouchableOpacity>
 
           <View style={[styles.settingRow, styles.settingRowBorder]}>
@@ -119,7 +157,7 @@ export default function SettingsScreen({
             </View>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>App Version</Text>
-              <Text style={styles.settingDesc}>1.0.0</Text>
+              <Text style={styles.settingDesc}>1.0.0 (Build 1)</Text>
             </View>
           </View>
         </View>
@@ -178,7 +216,10 @@ const styles = StyleSheet.create({
     borderTopColor: colors.brandPlatinum,
   },
   settingIconBox: {
-    padding: spacing.sm,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(224,227,232,0.3)',
     borderRadius: radius.lg,
   },

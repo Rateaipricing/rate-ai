@@ -18,14 +18,12 @@ import { useAppTheme } from '../context/AppTheme';
 
 interface LoginScreenProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
-  onAdminLogin: () => Promise<void>;
   externalError?: string | null;
   isLoggingIn?: boolean;
 }
 
 export default function LoginScreen({
   onLogin,
-  onAdminLogin,
   externalError,
   isLoggingIn,
 }: LoginScreenProps) {
@@ -33,28 +31,17 @@ export default function LoginScreen({
   const { theme } = useAppTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [adminUsername, setAdminUsername] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async () => {
     setError('');
-    if (isAdminMode) {
-      if (adminUsername.toLowerCase() === 'admin' && adminPassword === 'admin123') {
-        await onAdminLogin();
-      } else {
-        setError('Invalid admin credentials');
-      }
-    } else {
-      if (!email || !password) {
-        setError('Please enter email and password.');
-        return;
-      }
-      const success = await onLogin(email, password);
-      if (!success && !externalError) {
-        setError('Invalid email or password.');
-      }
+    if (!email || !password) {
+      setError('Please enter email and password.');
+      return;
+    }
+    const success = await onLogin(email, password);
+    if (!success && !externalError) {
+      setError('Invalid email or password.');
     }
   };
 
@@ -76,9 +63,7 @@ export default function LoginScreen({
         {/* Logo + title */}
         <View style={styles.logoArea}>
           <Logo width={160} />
-          <Text style={styles.subtitle}>
-            {isAdminMode ? 'ADMIN PANEL' : 'TECHNICIAN LOGIN'}
-          </Text>
+          <Text style={styles.subtitle}>SIGN IN</Text>
         </View>
 
         {/* Error */}
@@ -90,74 +75,37 @@ export default function LoginScreen({
 
         {/* Form */}
         <View style={styles.form}>
-          {!isAdminMode ? (
-            <>
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>EMAIL ADDRESS</Text>
-                <View style={styles.inputWrapper}>
-                  <Mail size={16} color={colors.brandBlack + '66'} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="technician@a-team.com"
-                    placeholderTextColor={colors.brandBlack + '44'}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-              </View>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>EMAIL ADDRESS</Text>
+            <View style={styles.inputWrapper}>
+              <Mail size={16} color={colors.brandBlack + '66'} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="your@email.com"
+                placeholderTextColor={colors.brandBlack + '44'}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+          </View>
 
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>PASSWORD</Text>
-                <View style={styles.inputWrapper}>
-                  <Lock size={16} color={colors.brandBlack + '66'} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="••••••••"
-                    placeholderTextColor={colors.brandBlack + '44'}
-                    secureTextEntry
-                  />
-                </View>
-              </View>
-            </>
-          ) : (
-            <>
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>ADMIN USERNAME</Text>
-                <View style={styles.inputWrapper}>
-                  <Mail size={16} color={colors.brandBlack + '66'} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    value={adminUsername}
-                    onChangeText={setAdminUsername}
-                    placeholder="admin"
-                    placeholderTextColor={colors.brandBlack + '44'}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>ADMIN PASSWORD</Text>
-                <View style={styles.inputWrapper}>
-                  <Lock size={16} color={colors.brandBlack + '66'} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    value={adminPassword}
-                    onChangeText={setAdminPassword}
-                    placeholder="••••••••"
-                    placeholderTextColor={colors.brandBlack + '44'}
-                    secureTextEntry
-                  />
-                </View>
-              </View>
-            </>
-          )}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>PASSWORD</Text>
+            <View style={styles.inputWrapper}>
+              <Lock size={16} color={colors.brandBlack + '66'} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor={colors.brandBlack + '44'}
+                secureTextEntry
+              />
+            </View>
+          </View>
 
           <TouchableOpacity
             style={[styles.submitBtn, { backgroundColor: theme.primary }, isLoggingIn && styles.submitBtnDisabled]}
@@ -173,26 +121,14 @@ export default function LoginScreen({
             ) : (
               <>
                 <LogIn size={20} color={colors.white} />
-                <Text style={styles.submitBtnText}>
-                  {isAdminMode ? 'ADMIN SIGN IN' : 'SIGN IN'}
-                </Text>
+                <Text style={styles.submitBtnText}>SIGN IN</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Toggle mode */}
-        <TouchableOpacity
-          style={styles.toggleBtn}
-          onPress={() => { setIsAdminMode(!isAdminMode); setError(''); }}
-        >
-          <Text style={styles.toggleText}>
-            {isAdminMode ? 'Back to Technician Login' : 'Go to Admin Panel'}
-          </Text>
-        </TouchableOpacity>
-
         {/* Footer */}
-        <Text style={styles.footer}>© 2026 A-TEAM ELECTRICIANS</Text>
+        <Text style={styles.footer}>© 2026 RATE AI</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -285,15 +221,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.white,
     letterSpacing: 1,
-  },
-  toggleBtn: {
-    marginTop: spacing.xl,
-    alignItems: 'center',
-  },
-  toggleText: {
-    fontFamily: fonts.sansBold,
-    fontSize: fontSize.xs,
-    color: colors.brandBlack + '99',
   },
   footer: {
     fontFamily: fonts.sansBlack,

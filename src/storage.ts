@@ -3,12 +3,13 @@
  * Data is loaded from cache first, then synced with Firestore when online.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Category, AppUser } from './types';
+import { Category, AppUser, CartItem } from './types';
 
 const KEYS = {
   categories: 'ateam_categories_v1',
   user: 'ateam_user_v1',
   isAdmin: 'ateam_is_admin_v1',
+  cart: 'ateam_cart_v1',
 };
 
 // ── Categories ────────────────────────────────────────────────────────────────
@@ -74,6 +75,31 @@ export async function getAdminSession(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// ── Cart ──────────────────────────────────────────────────────────────────────
+
+export async function saveCart(items: CartItem[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.cart, JSON.stringify(items));
+  } catch (e) {
+    console.warn('Failed to save cart:', e);
+  }
+}
+
+export async function loadCart(): Promise<CartItem[]> {
+  try {
+    const data = await AsyncStorage.getItem(KEYS.cart);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function clearCart(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(KEYS.cart);
+  } catch {}
 }
 
 // ── Clear all ─────────────────────────────────────────────────────────────────

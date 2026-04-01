@@ -17,6 +17,8 @@ interface CategoryScreenProps {
   isLoggingOut: boolean;
   onRefresh: () => void;
   isRefreshing: boolean;
+  cartCount?: number;
+  onCartPress?: () => void;
 }
 
 export default function CategoryScreen({
@@ -29,13 +31,15 @@ export default function CategoryScreen({
   isLoggingOut,
   onRefresh,
   isRefreshing,
+  cartCount,
+  onCartPress,
 }: CategoryScreenProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme } = useAppTheme();
 
   return (
     <View style={styles.container}>
-      <Header onMenuPress={() => setIsMenuOpen(true)} />
+      <Header onMenuPress={() => setIsMenuOpen(true)} cartCount={cartCount} onCartPress={onCartPress} />
 
       {/* Breadcrumb */}
       <View style={styles.breadcrumb}>
