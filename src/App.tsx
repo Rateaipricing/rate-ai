@@ -196,9 +196,12 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // ── Firestore data listener ───────────────────────────────────────────────
+  // ── Firestore categories listener ────────────────────────────────────────
+  // Intentionally depends only on isAuthReady so isAdmin toggling (which
+  // happens during the onAuthStateChanged async callback) never restarts this
+  // effect and clears the 6-second timeout prematurely.
   useEffect(() => {
-    if (!isAuthReady || (!auth.currentUser && !isAdmin)) return;
+    if (!isAuthReady || !auth.currentUser) return;
 
     // 6-second safety timeout — if Firebase hasn't responded, fall back to
     // whatever we have (cache) and show the sync-failed banner.
@@ -226,23 +229,24 @@ export default function App() {
       }
     );
 
-    let unsubUsers = () => {};
-    if (isAdmin) {
-      unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-        const usersList = snapshot.docs.map((d) => ({
-          ...d.data(),
-          uid: d.id,
-        } as AppUser));
-        setUsers(usersList);
-      });
-    }
-
     return () => {
       clearTimeout(timeoutId);
       unsubCategories();
-      unsubUsers();
     };
-  }, [isAuthReady, isAdmin]);
+  }, [isAuthReady]);
+
+  // ── Firestore admin users listener ────────────────────────────────────────
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const usersList = snapshot.docs.map((d) => ({
+        ...d.data(),
+        uid: d.id,
+      } as AppUser));
+      setUsers(usersList);
+    });
+    return () => unsubUsers();
+  }, [isAdmin]);
 
   // ── Splash timer ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -275,6 +279,7 @@ export default function App() {
 
   // ── Android hardware back button ──────────────────────────────────────────
   useEffect(() => {
+    if (Platform.OS !== 'android') return;
     const backAction = () => {
       switch (currentScreen) {
         case 'splash':

@@ -62,7 +62,7 @@ export default function LoginScreen({
       >
         {/* Logo + title */}
         <View style={styles.logoArea}>
-          <Logo width={160} />
+          <Logo width={240} />
           <Text style={styles.subtitle}>SIGN IN</Text>
         </View>
 

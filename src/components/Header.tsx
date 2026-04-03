@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Menu, ClipboardList } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing } from '../theme';
+import { colors, fonts, spacing } from '../theme';
 import { useAppTheme } from '../context/AppTheme';
 import { Logo } from './Logo';
 
@@ -23,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuPress, rightElement, cartC
         <Menu size={24} color={theme.primary} />
       </TouchableOpacity>
 
-      <Logo width={90} variant="white" />
+      <Logo width={150} variant="white" />
 
       <TouchableOpacity
         style={styles.rightSlot}

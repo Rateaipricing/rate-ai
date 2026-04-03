@@ -1,15 +1,14 @@
+import { Platform } from 'react-native';
 import { initializeApp } from 'firebase/app';
 import {
   initializeAuth,
+  browserLocalPersistence,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-// React Native persistence helper (available in firebase 9.3+)
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { getReactNativePersistence } = require('firebase/auth');
 import {
   getFirestore,
   collection,
@@ -26,7 +25,6 @@ import {
   getDocFromServer,
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   projectId: 'gen-lang-client-0799600946',
@@ -41,10 +39,19 @@ const FIRESTORE_DB_ID = 'ai-studio-934be5ac-fb1f-47e7-a89d-cbc72af93b11';
 
 const app = initializeApp(firebaseConfig);
 
-// Auth with AsyncStorage persistence so session survives app restarts
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+// Use browserLocalPersistence on web, AsyncStorage persistence on native
+let persistence;
+if (Platform.OS === 'web') {
+  persistence = browserLocalPersistence;
+} else {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getReactNativePersistence } = require('firebase/auth');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+  persistence = getReactNativePersistence(AsyncStorage);
+}
+
+export const auth = initializeAuth(app, { persistence });
 
 export const db = getFirestore(app, FIRESTORE_DB_ID);
 

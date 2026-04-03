@@ -100,7 +100,7 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({
       >
         {/* Header */}
         <View style={styles.panelHeader}>
-          <Logo width={80} variant="white" />
+          <Logo width={130} variant="white" />
           <TouchableOpacity onPress={onClose}>
             <X size={24} color={theme.primary} />
           </TouchableOpacity>

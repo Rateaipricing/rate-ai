@@ -64,6 +64,11 @@
       "package": "com.rateai.app",
       "versionCode": 1
     },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./Logos/dark-mode-solid-logo.png"
+    },
     "plugins": [
       "expo-font",
       "expo-asset"

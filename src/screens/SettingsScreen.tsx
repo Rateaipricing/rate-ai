@@ -77,7 +77,7 @@ export default function SettingsScreen({
   };
 
   const handlePrivacyPolicy = () => {
-    Linking.openURL('https://shehbazali1639.github.io/a-team-electricians/privacy-policy.html');
+    Linking.openURL('https://syedshahbazali-daata.github.io/rate-ai-app/privacy-policy.html');
   };
 
   return (

@@ -42,7 +42,7 @@ export default function SplashScreen() {
           },
         ]}
       >
-        <Logo width={220} variant="white" />
+        <Logo width={300} variant="white" />
 
         <Animated.View
           style={[

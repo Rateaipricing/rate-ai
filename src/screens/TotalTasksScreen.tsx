@@ -37,7 +37,7 @@ export default function TotalTasksScreen({
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <ArrowLeft size={24} color={colors.white} />
         </TouchableOpacity>
-        <Logo width={90} variant="white" />
+        <Logo width={150} variant="white" />
         <View style={{ width: 24 }} />
       </View>
 
