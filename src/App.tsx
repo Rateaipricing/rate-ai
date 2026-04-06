@@ -197,9 +197,9 @@ export default function App() {
   }, []);
 
   // ── Firestore categories listener ────────────────────────────────────────
-  // Intentionally depends only on isAuthReady so isAdmin toggling (which
-  // happens during the onAuthStateChanged async callback) never restarts this
-  // effect and clears the 6-second timeout prematurely.
+  // Depends on isAuthReady and user so the listener starts both on initial
+  // load (when a session already exists) and after a fresh login (when
+  // isAuthReady is already true but user just changed from null).
   useEffect(() => {
     if (!isAuthReady || !auth.currentUser) return;
 
@@ -233,7 +233,7 @@ export default function App() {
       clearTimeout(timeoutId);
       unsubCategories();
     };
-  }, [isAuthReady]);
+  }, [isAuthReady, user]);
 
   // ── Firestore admin users listener ────────────────────────────────────────
   useEffect(() => {
