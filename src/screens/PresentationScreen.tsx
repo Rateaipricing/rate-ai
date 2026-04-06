@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { CheckCircle2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '../components/Header';
@@ -68,11 +68,19 @@ export default function PresentationScreen({
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <Header onMenuPress={() => setIsMenuOpen(true)} cartCount={cartCount} onCartPress={onCartPress} />
 
-      <View style={styles.cardsContainer}>
+      <ScrollView
+        style={styles.cardsContainer}
+        contentContainerStyle={styles.cardsContent}
+        showsVerticalScrollIndicator={false}
+      >
         {sortedTasks.map((task) => {
           const tierCfg = getTierConfig(task.tier);
           const isE = task.tier.toUpperCase() === 'E';
           const selected = !!getCartItem(task.task_code);
+          const features = task.task_description
+            .split('\n')
+            .map((l) => l.trim())
+            .filter(Boolean);
 
           return (
             <TouchableOpacity
@@ -85,49 +93,51 @@ export default function PresentationScreen({
               onPress={() => handleCardPress(task)}
               activeOpacity={0.75}
             >
-              {/* Left color bar — wider when selected */}
-              <View style={[styles.colorBar, { backgroundColor: tierCfg.bar, width: selected ? 12 : 7 }]} />
+              {/* Left color bar */}
+              <View style={[styles.colorBar, { backgroundColor: tierCfg.bar, width: selected ? 10 : 6 }]} />
 
               <View style={styles.cardContent}>
                 <View style={styles.cardLeft}>
+                  {/* Tier name row */}
                   <View style={styles.serviceLevelRow}>
-                    {isE && !selected && (
-                      <CheckCircle2 size={18} color={tierCfg.bar} fill={tierCfg.bar} />
+                    {isE && (
+                      <CheckCircle2 size={15} color={tierCfg.bar} fill={tierCfg.bar} />
                     )}
-                    <Text style={styles.serviceLevel} numberOfLines={1}>{task.service_level}</Text>
+                    <Text style={styles.serviceLevel}>{task.service_level}</Text>
                   </View>
 
-                  <Text style={styles.taskCodeName} numberOfLines={1}>
+                  {/* Task code + name — wraps naturally */}
+                  <Text style={styles.taskCodeName}>
                     {task.task_code} {task.task_name}
                   </Text>
 
+                  {/* Features */}
                   <View style={styles.descriptionLines}>
-                    {task.task_description.split('\n').slice(0, 3).map((line, i) => (
-                      <Text key={i} style={styles.descriptionLine} numberOfLines={1}>{line}</Text>
+                    {features.map((line, i) => (
+                      <Text key={i} style={styles.descriptionLine}>{line}</Text>
                     ))}
                   </View>
                 </View>
 
+                {/* Price + warranty */}
                 <View style={styles.cardRight}>
-                  <View style={[styles.priceBox, selected && { backgroundColor: tierCfg.bar, borderColor: tierCfg.bar }]}>
-                    <Text style={[styles.price, selected && { color: colors.white }]}>
-                      ${task.price}
-                    </Text>
-                  </View>
-                  <Text style={styles.warranty} numberOfLines={2}>{task.warranty}</Text>
+                  <Text style={[styles.price, selected && { color: tierCfg.bar }]}>
+                    ${task.price.toLocaleString()}
+                  </Text>
+                  <Text style={styles.warranty}>{task.warranty}</Text>
                 </View>
               </View>
 
-              {/* Checkmark badge — top-right corner when selected */}
+              {/* Selected checkmark badge */}
               {selected && (
                 <View style={[styles.checkBadge, { backgroundColor: tierCfg.bar }]}>
-                  <CheckCircle2 size={16} color={colors.white} fill={tierCfg.bar} />
+                  <CheckCircle2 size={14} color={colors.white} fill={tierCfg.bar} />
                 </View>
               )}
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       <MenuOverlay
         isOpen={isMenuOpen}
@@ -148,13 +158,17 @@ const styles = StyleSheet.create({
   cardsContainer: {
     flex: 1,
   },
+  cardsContent: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    gap: 5,
+  },
   card: {
-    flex: 1,
     borderRadius: 0,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
     overflow: 'hidden',
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.brandPlatinum,
     borderWidth: 0,
   },
   colorBar: {
@@ -163,10 +177,10 @@ const styles = StyleSheet.create({
   cardContent: {
     flex: 1,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.sm,
   },
   cardLeft: {
@@ -176,64 +190,58 @@ const styles = StyleSheet.create({
   serviceLevelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 4,
   },
   serviceLevel: {
     fontFamily: fonts.sansBlack,
     fontSize: fontSize.sm,
     color: colors.brandBlack,
     textTransform: 'uppercase',
-    letterSpacing: -0.5,
-    flex: 1,
+    letterSpacing: -0.3,
   },
   taskCodeName: {
     fontFamily: fonts.sansBlack,
     fontSize: 10,
     color: colors.brandBlack,
     textTransform: 'uppercase',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
+    lineHeight: 14,
   },
   descriptionLines: {
-    gap: 2,
+    gap: 1,
+    marginTop: 2,
   },
   descriptionLine: {
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.sans,
     fontSize: 10,
     color: colors.brandBlack + 'cc',
+    lineHeight: 14,
   },
   cardRight: {
     alignItems: 'flex-end',
-    gap: 4,
-    minWidth: 80,
-  },
-  priceBox: {
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 3,
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: colors.brandPlatinum,
+    gap: 3,
+    minWidth: 72,
+    paddingTop: 2,
   },
   price: {
     fontFamily: fonts.sansBlack,
-    fontSize: fontSize.lg,
+    fontSize: fontSize.md,
     color: colors.brandBlack,
     letterSpacing: -0.5,
   },
   warranty: {
-    fontFamily: fonts.sansBlack,
+    fontFamily: fonts.sans,
     fontSize: 9,
     color: colors.brandBlack + '99',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
     textAlign: 'right',
+    lineHeight: 13,
   },
   checkBadge: {
     position: 'absolute',
     top: 0,
     right: 0,
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomLeftRadius: 6,

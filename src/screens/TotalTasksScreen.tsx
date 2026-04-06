@@ -44,7 +44,7 @@ export default function TotalTasksScreen({
       lines.push(task.service_level.toUpperCase());
       lines.push(`${task.task_code} ${task.task_name.toUpperCase()}`);
       lines.push(task.task_name);
-      task.custom_handbook.split('\n').forEach((feature) => {
+      task.task_description.split('\n').forEach((feature) => {
         if (feature.trim()) lines.push(feature.trim());
       });
       lines.push('');
