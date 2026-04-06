@@ -294,6 +294,11 @@ export default function AdminScreen({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmDialog({ title, message, onConfirm });
+  };
 
   // Filter indices for task_groups / tasks tabs
   const [selectedCategoryIdx, setSelectedCategoryIdx] = useState(0);
@@ -365,20 +370,13 @@ export default function AdminScreen({
   };
 
   const handleDeleteCategory = (id: string) => {
-    Alert.alert('Delete Category', 'Are you sure you want to delete this category?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteDoc(doc(db, 'categories', id));
-          } catch (e: any) {
-            Alert.alert('Error', e.message);
-          }
-        },
-      },
-    ]);
+    showConfirm('Delete Category', 'Are you sure you want to delete this category? This cannot be undone.', async () => {
+      try {
+        await deleteDoc(doc(db, 'categories', id));
+      } catch (e: any) {
+        Alert.alert('Error', e.message);
+      }
+    });
   };
 
   // ── Task Groups ─────────────────────────────────────────────────────────────
@@ -403,24 +401,17 @@ export default function AdminScreen({
   };
 
   const handleDeleteTaskGroup = (groupIdx: number) => {
-    Alert.alert('Delete Task Group', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          const category = pricingData.categories[selectedCategoryIdx];
-          if (!category?.id) return;
-          const newGroups = [...category.task_groups];
-          newGroups.splice(groupIdx, 1);
-          try {
-            await updateDoc(doc(db, 'categories', category.id), { task_groups: newGroups });
-          } catch (e: any) {
-            Alert.alert('Error', e.message);
-          }
-        },
-      },
-    ]);
+    showConfirm('Delete Task Group', 'Are you sure you want to delete this task group? This cannot be undone.', async () => {
+      const category = pricingData.categories[selectedCategoryIdx];
+      if (!category?.id) return;
+      const newGroups = [...category.task_groups];
+      newGroups.splice(groupIdx, 1);
+      try {
+        await updateDoc(doc(db, 'categories', category.id), { task_groups: newGroups });
+      } catch (e: any) {
+        Alert.alert('Error', e.message);
+      }
+    });
   };
 
   // ── Tasks ───────────────────────────────────────────────────────────────────
@@ -447,24 +438,17 @@ export default function AdminScreen({
   };
 
   const handleDeleteTask = (taskIdx: number) => {
-    Alert.alert('Delete Task', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          const category = pricingData.categories[selectedCategoryIdx];
-          if (!category?.id) return;
-          const newGroups = JSON.parse(JSON.stringify(category.task_groups));
-          newGroups[selectedGroupIdx]?.levels[selectedLevelIdx]?.tasks.splice(taskIdx, 1);
-          try {
-            await updateDoc(doc(db, 'categories', category.id), { task_groups: newGroups });
-          } catch (e: any) {
-            Alert.alert('Error', e.message);
-          }
-        },
-      },
-    ]);
+    showConfirm('Delete Task', 'Are you sure you want to delete this task? This cannot be undone.', async () => {
+      const category = pricingData.categories[selectedCategoryIdx];
+      if (!category?.id) return;
+      const newGroups = JSON.parse(JSON.stringify(category.task_groups));
+      newGroups[selectedGroupIdx]?.levels[selectedLevelIdx]?.tasks.splice(taskIdx, 1);
+      try {
+        await updateDoc(doc(db, 'categories', category.id), { task_groups: newGroups });
+      } catch (e: any) {
+        Alert.alert('Error', e.message);
+      }
+    });
   };
 
   // ── Users ───────────────────────────────────────────────────────────────────
@@ -548,22 +532,15 @@ export default function AdminScreen({
   };
 
   const handleDeleteUser = (user: AppUser) => {
-    Alert.alert('Delete User', `Delete ${user.name}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          if (!user.uid) return;
-          try {
-            await deleteDoc(doc(db, 'users', user.uid));
-            try { await deleteAuthUser(user.uid); } catch { /* needs Cloud Function */ }
-          } catch (e: any) {
-            Alert.alert('Error', e.message);
-          }
-        },
-      },
-    ]);
+    showConfirm('Delete User', `Are you sure you want to delete ${user.name}? This cannot be undone.`, async () => {
+      if (!user.uid) return;
+      try {
+        await deleteDoc(doc(db, 'users', user.uid));
+        try { await deleteAuthUser(user.uid); } catch { /* needs Cloud Function */ }
+      } catch (e: any) {
+        Alert.alert('Error', e.message);
+      }
+    });
   };
 
   // ── Current data shortcuts ──────────────────────────────────────────────────
@@ -772,9 +749,11 @@ export default function AdminScreen({
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteUser(u)}>
-                  <Trash2 size={16} color={colors.brandRed} />
-                </TouchableOpacity>
+                {u.role !== 'Admin' && (
+                  <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteUser(u)}>
+                    <Trash2 size={16} color={colors.brandRed} />
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           />
@@ -906,6 +885,32 @@ export default function AdminScreen({
                 <Text style={styles.resetBtnText}>RESET TO DEFAULT</Text>
               </TouchableOpacity>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Confirm Delete Modal ─────────────────────────────────────────── */}
+      <Modal visible={!!confirmDialog} transparent animationType="fade" onRequestClose={() => setConfirmDialog(null)}>
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>{confirmDialog?.title}</Text>
+            <Text style={styles.confirmMessage}>{confirmDialog?.message}</Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity style={styles.confirmCancelBtn} onPress={() => setConfirmDialog(null)}>
+                <Text style={styles.confirmCancelText}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmDeleteBtn}
+                onPress={() => {
+                  const fn = confirmDialog?.onConfirm;
+                  setConfirmDialog(null);
+                  fn?.();
+                }}
+              >
+                <Trash2 size={14} color={colors.white} />
+                <Text style={styles.confirmDeleteText}>DELETE</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1126,6 +1131,76 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     backgroundColor: '#fff0f0',
     borderRadius: radius.md,
+  },
+
+  // Confirm delete modal
+  confirmBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  confirmCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    width: '100%',
+    maxWidth: 360,
+    gap: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  confirmTitle: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.base,
+    color: colors.brandBlack,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  confirmMessage: {
+    fontFamily: fonts.sans,
+    fontSize: fontSize.sm,
+    color: colors.brandBlack + '99',
+    lineHeight: 20,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  confirmCancelBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.brandPlatinum,
+    alignItems: 'center',
+  },
+  confirmCancelText: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.xs,
+    color: colors.brandBlack + '88',
+    letterSpacing: 1,
+  },
+  confirmDeleteBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.brandRed,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  confirmDeleteText: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.xs,
+    color: colors.white,
+    letterSpacing: 1,
   },
 
   // Filter chips
