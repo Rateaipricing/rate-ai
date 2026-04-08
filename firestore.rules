@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        ("email" in request.auth.token && request.auth.token.email.toLower() == "shehbazali1639@gmail.com") ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin')
+      );
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['name', 'email', 'role', 'password', 'uid', 'createdAt', 'updatedAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string && isValidEmail(data.email) &&
+             data.role in ['Technician', 'General User', 'Admin'];
+    }
+
+    function isValidCategory(data) {
+      return hasOnlyAllowedFields(['name', 'prefix', 'task_groups', 'task_list', 'id', 'createdAt', 'updatedAt']) &&
+             (data.name is string || data.name is list) &&
+             data.prefix is string && data.prefix.size() > 0 && data.prefix.size() < 10 &&
+             data.task_groups is list;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Site settings — public read so the password gate can fetch the
+    // password before the app loads; write restricted to admins only.
+    match /settings/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

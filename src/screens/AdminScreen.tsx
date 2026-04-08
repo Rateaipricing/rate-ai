@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,8 @@ import {
   X,
   Settings,
   RotateCcw,
+  ChevronDown,
+  Check,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, spacing, fontSize, radius } from '../theme';
@@ -43,6 +45,7 @@ import {
   db,
   collection,
   doc,
+  getDoc,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -149,6 +152,81 @@ function CategoryForm({
   );
 }
 
+// ─── Dropdown Picker ──────────────────────────────────────────────────────────
+function DropdownPicker({
+  label,
+  selectedLabel,
+  options,
+  onSelect,
+  placeholder,
+}: {
+  label: string;
+  selectedLabel: string;
+  options: { label: string; index: number }[];
+  onSelect: (index: number) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasValue = !!selectedLabel;
+
+  return (
+    <View style={styles.dropdownWrap}>
+      <Text style={styles.filterLabel}>{label}</Text>
+      <TouchableOpacity
+        style={[styles.dropdownTrigger, open && styles.dropdownTriggerOpen]}
+        onPress={() => setOpen(true)}
+        activeOpacity={0.75}
+      >
+        <Text
+          style={[styles.dropdownTriggerText, !hasValue && styles.dropdownTriggerPlaceholder]}
+          numberOfLines={1}
+        >
+          {hasValue ? selectedLabel : (placeholder || `Select ${label}…`)}
+        </Text>
+        <ChevronDown size={16} color={colors.brandBlack + '88'} />
+      </TouchableOpacity>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity
+          style={styles.dropdownBackdrop}
+          onPress={() => setOpen(false)}
+          activeOpacity={1}
+        >
+          <View style={styles.dropdownSheet}>
+            <View style={styles.dropdownSheetHeader}>
+              <Text style={styles.dropdownSheetTitle}>{label}</Text>
+              <TouchableOpacity onPress={() => setOpen(false)}>
+                <X size={18} color={colors.white} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.dropdownList} showsVerticalScrollIndicator={false}>
+              {options.map((opt) => {
+                const active = opt.label === selectedLabel;
+                return (
+                  <TouchableOpacity
+                    key={opt.index}
+                    style={[styles.dropdownOption, active && styles.dropdownOptionActive]}
+                    onPress={() => { onSelect(opt.index); setOpen(false); }}
+                    activeOpacity={0.75}
+                  >
+                    <Text
+                      style={[styles.dropdownOptionText, active && styles.dropdownOptionTextActive]}
+                      numberOfLines={2}
+                    >
+                      {opt.label}
+                    </Text>
+                    {active && <Check size={16} color={colors.white} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
 // ─── Task Group Form ──────────────────────────────────────────────────────────
 function TaskGroupForm({
   initialData,
@@ -160,23 +238,66 @@ function TaskGroupForm({
   isSubmitting?: boolean;
 }) {
   const [name, setName] = useState(initialData?.name?.join(' ') || '');
+  const [levelCount, setLevelCount] = useState<number>(initialData?.levels?.length || 3);
 
   return (
     <View style={styles.formBody}>
-      <Field label="GROUP NAME" value={name} onChangeText={setName} placeholder="e.g., Circuit Breakers" />
+      <Field label="GROUP NAME" value={name} onChangeText={setName} placeholder="e.g., Light Switch Repair or Replace" />
+
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>NUMBER OF LEVELS</Text>
+        <View style={styles.levelCountRow}>
+          <TouchableOpacity
+            style={styles.levelCountBtn}
+            onPress={() => setLevelCount((n) => Math.max(1, n - 1))}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.levelCountBtnText}>−</Text>
+          </TouchableOpacity>
+          <View style={styles.levelCountDisplay}>
+            <Text style={styles.levelCountNum}>{levelCount}</Text>
+            <Text style={styles.levelCountLabel}>Level{levelCount !== 1 ? 's' : ''}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.levelCountBtn}
+            onPress={() => setLevelCount((n) => Math.min(20, n + 1))}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.levelCountBtnText}>+</Text>
+          </TouchableOpacity>
+        </View>
+        {!!name.trim() && (
+          <View style={styles.levelPreview}>
+            {Array.from({ length: Math.min(levelCount, 3) }, (_, i) => (
+              <Text key={i} style={styles.levelPreviewText} numberOfLines={1}>
+                {`${name.trim()} - Level ${i + 1}`}
+              </Text>
+            ))}
+            {levelCount > 3 && (
+              <Text style={styles.levelPreviewMore}>…and {levelCount - 3} more</Text>
+            )}
+          </View>
+        )}
+      </View>
+
       <SaveButton
         label="SAVE GROUP"
         isSubmitting={isSubmitting}
-        onPress={() =>
-          onSave({
-            name: name.split(' '),
-            levels: initialData?.levels || [
-              { id: 1, level_number: 1, custom_level_name: 'Standard', prefix: 'STD', tasks: [] },
-              { id: 2, level_number: 2, custom_level_name: 'Premium', prefix: 'PRM', tasks: [] },
-            ],
-            task_list: initialData?.task_list || [],
-          })
-        }
+        onPress={() => {
+          const levels = Array.from({ length: levelCount }, (_, i) => {
+            const levelName = `${name.trim()} - Level ${i + 1}`;
+            const existing = initialData?.levels?.[i];
+            // Preserve existing tasks if level count is being adjusted
+            return {
+              id: i + 1,
+              level_number: i + 1,
+              custom_level_name: levelName,
+              prefix: `L${i + 1}`,
+              tasks: existing?.tasks || [],
+            };
+          });
+          onSave({ name: name.trim().split(' '), levels, task_list: initialData?.task_list || [] });
+        }}
       />
     </View>
   );
@@ -187,46 +308,98 @@ function TaskForm({
   initialData,
   onSave,
   isSubmitting,
+  levelName,
 }: {
   initialData?: any;
   onSave: (data: Task) => void;
   isSubmitting?: boolean;
+  levelName?: string;
 }) {
-  const [taskName, setTaskName] = useState(initialData?.task_name || '');
-  const [taskCode, setTaskCode] = useState(initialData?.task_code || '');
-  const [price, setPrice] = useState(String(initialData?.price || ''));
-  const [description, setDescription] = useState(initialData?.task_description || '');
+  const [taskName,             setTaskName]             = useState(initialData?.task_name             || '');
+  const [taskCode,             setTaskCode]             = useState(initialData?.task_code             || '');
+  const [serviceLevel,         setServiceLevel]         = useState(initialData?.service_level         || '');
+  const [price,                setPrice]                = useState(String(initialData?.price          ?? ''));
+  const [baseMaterialCost,     setBaseMaterialCost]     = useState(initialData?.base_material_cost    || '');
+  const [paymentPlanPrice,     setPaymentPlanPrice]     = useState(String(initialData?.payment_plan_price     ?? ''));
+  const [serviceAgreementPrice,setServiceAgreementPrice]= useState(String(initialData?.service_agreement_price ?? ''));
+  const [warranty,             setWarranty]             = useState(initialData?.warranty              || '');
+  const [estimatedTime,        setEstimatedTime]        = useState(initialData?.estimated_time        || '');
+  const [description,          setDescription]          = useState(initialData?.task_description      || '');
+  const [customHandbook,       setCustomHandbook]       = useState(initialData?.custom_handbook       || '');
 
   return (
     <View style={styles.formBody}>
+      {/* Level badge */}
+      {!!levelName && (
+        <View style={styles.levelBadgeRow}>
+          <Text style={styles.levelBadgeLabel}>LEVEL</Text>
+          <View style={styles.levelBadge}>
+            <Text style={styles.levelBadgeText}>{levelName}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* ── Identity ──────────────────────────────────────────────────── */}
+      <Text style={styles.formSectionLabel}>TASK IDENTITY</Text>
       <Field label="TASK NAME" value={taskName} onChangeText={setTaskName} placeholder="e.g., Replace Main Breaker" />
       <View style={styles.row2}>
         <View style={styles.flex1}>
           <Field label="TASK CODE" value={taskCode} onChangeText={setTaskCode} placeholder="e.g., EA1A" />
         </View>
         <View style={styles.flex1}>
-          <Field label="PRICE ($)" value={price} onChangeText={setPrice} placeholder="0" keyboardType="numeric" />
+          <Field label="SERVICE LEVEL" value={serviceLevel} onChangeText={setServiceLevel} placeholder="e.g., Professional" />
         </View>
       </View>
-      <Field label="DESCRIPTION" value={description} onChangeText={setDescription} placeholder="Task details..." multiline />
+      <View style={styles.row2}>
+        <View style={styles.flex1}>
+          <Field label="ESTIMATED TIME" value={estimatedTime} onChangeText={setEstimatedTime} placeholder="e.g., 1-2 Hours" />
+        </View>
+        <View style={styles.flex1}>
+          <Field label="WARRANTY" value={warranty} onChangeText={setWarranty} placeholder="e.g., 1 Year" />
+        </View>
+      </View>
+
+      {/* ── Pricing ───────────────────────────────────────────────────── */}
+      <Text style={styles.formSectionLabel}>PRICING</Text>
+      <View style={styles.row2}>
+        <View style={styles.flex1}>
+          <Field label="PRICE ($)" value={price} onChangeText={setPrice} placeholder="0.00" keyboardType="numeric" />
+        </View>
+        <View style={styles.flex1}>
+          <Field label="BASE MATERIAL COST ($)" value={baseMaterialCost} onChangeText={setBaseMaterialCost} placeholder="0.00" keyboardType="numeric" />
+        </View>
+      </View>
+      <View style={styles.row2}>
+        <View style={styles.flex1}>
+          <Field label="PAYMENT PLAN ($)" value={paymentPlanPrice} onChangeText={setPaymentPlanPrice} placeholder="0.00" keyboardType="numeric" />
+        </View>
+        <View style={styles.flex1}>
+          <Field label="SERVICE AGREEMENT ($)" value={serviceAgreementPrice} onChangeText={setServiceAgreementPrice} placeholder="0.00" keyboardType="numeric" />
+        </View>
+      </View>
+
+      {/* ── Description ───────────────────────────────────────────────── */}
+      <Text style={styles.formSectionLabel}>DESCRIPTION</Text>
+      <Field label="TASK DESCRIPTION" value={description} onChangeText={setDescription} placeholder="Detailed task description..." multiline />
+      <Field label="CUSTOM HANDBOOK" value={customHandbook} onChangeText={setCustomHandbook} placeholder="Handbook / special notes..." multiline />
+
       <SaveButton
         label="SAVE TASK"
         isSubmitting={isSubmitting}
         onPress={() =>
           onSave({
-            ...initialData,
-            task_name: taskName,
-            task_code: taskCode,
-            price: Number(price) || 0,
-            task_description: description,
-            tier: initialData?.tier || 'Standard',
-            warranty: initialData?.warranty || '1 Year',
-            service_level: initialData?.service_level || 'Professional',
-            estimated_time: initialData?.estimated_time || '1-2 Hours',
-            custom_handbook: initialData?.custom_handbook || '',
-            base_material_cost: initialData?.base_material_cost || '0',
-            payment_plan_price: initialData?.payment_plan_price || (Number(price) / 12),
-            service_agreement_price: initialData?.service_agreement_price || (Number(price) * 0.9),
+            tier:                    levelName || initialData?.tier || '',
+            task_name:               taskName,
+            task_code:               taskCode,
+            service_level:           serviceLevel,
+            price:                   Number(price) || 0,
+            base_material_cost:      baseMaterialCost,
+            payment_plan_price:      Number(paymentPlanPrice) || 0,
+            service_agreement_price: Number(serviceAgreementPrice) || 0,
+            warranty,
+            estimated_time:          estimatedTime,
+            task_description:        description,
+            custom_handbook:         customHandbook,
           })
         }
       />
@@ -295,6 +468,33 @@ export default function AdminScreen({
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  const [sitePassword, setSitePassword] = useState('');
+  const [sitePasswordSaving, setSitePasswordSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isSettingsOpen) return;
+    getDoc(doc(db, 'settings', 'site')).then((snap) => {
+      if (snap.exists()) {
+        setSitePassword(snap.data().password || '');
+      } else {
+        // First time — seed the default password
+        setDoc(doc(db, 'settings', 'site'), { password: 'rate123' }).catch(() => {});
+        setSitePassword('rate123');
+      }
+    }).catch(() => {});
+  }, [isSettingsOpen]);
+
+  async function saveSitePassword() {
+    if (!sitePassword.trim()) return;
+    setSitePasswordSaving(true);
+    try {
+      await setDoc(doc(db, 'settings', 'site'), { password: sitePassword.trim() });
+    } catch {
+      Alert.alert('Error', 'Failed to save site password.');
+    } finally {
+      setSitePasswordSaving(false);
+    }
+  }
 
   const showConfirm = (title: string, message: string, onConfirm: () => void) => {
     setConfirmDialog({ title, message, onConfirm });
@@ -662,32 +862,20 @@ export default function AdminScreen({
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
-                  <Text style={[styles.filterLabel, { marginTop: spacing.sm }]}>GROUP</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-                    {currentCategory?.task_groups.map((g, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        style={[styles.chip, selectedGroupIdx === idx && styles.chipActive]}
-                        onPress={() => { setSelectedGroupIdx(idx); setSelectedLevelIdx(0); }}
-                      >
-                        <Text style={[styles.chipText, selectedGroupIdx === idx && styles.chipTextActive]} numberOfLines={1}>
-                          {g.name[0]?.slice(0, 12)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                  <Text style={[styles.filterLabel, { marginTop: spacing.sm }]}>LEVEL</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-                    {currentGroup?.levels.map((level, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        style={[styles.chip, selectedLevelIdx === idx && styles.chipActive]}
-                        onPress={() => setSelectedLevelIdx(idx)}
-                      >
-                        <Text style={[styles.chipText, selectedLevelIdx === idx && styles.chipTextActive]}>{level.custom_level_name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                  <DropdownPicker
+                    label="GROUP"
+                    selectedLabel={currentGroup?.name.join(' ') || ''}
+                    options={(currentCategory?.task_groups ?? []).map((g, idx) => ({ label: g.name.join(' '), index: idx }))}
+                    onSelect={(idx) => { setSelectedGroupIdx(idx); setSelectedLevelIdx(0); }}
+                    placeholder="Select a group…"
+                  />
+                  <DropdownPicker
+                    label="LEVEL"
+                    selectedLabel={currentLevel?.custom_level_name || ''}
+                    options={(currentGroup?.levels ?? []).map((l, idx) => ({ label: l.custom_level_name, index: idx }))}
+                    onSelect={setSelectedLevelIdx}
+                    placeholder="Select a level…"
+                  />
                 </View>
                 <TouchableOpacity style={styles.addFullBtn} onPress={() => { setEditingItem(null); setIsAdding(true); }}>
                   <Plus size={18} color={colors.white} />
@@ -884,6 +1072,21 @@ export default function AdminScreen({
                 <RotateCcw size={16} color={colors.brandBlack} />
                 <Text style={styles.resetBtnText}>RESET TO DEFAULT</Text>
               </TouchableOpacity>
+
+              {/* ── Site Password ───────────────────────────────────────── */}
+              <Text style={styles.settingsSectionLabel}>SITE PASSWORD</Text>
+              <View style={styles.sitePwRow}>
+                <TextInput
+                  style={styles.sitePwInput}
+                  value={sitePassword}
+                  onChangeText={setSitePassword}
+                  placeholder="Enter new password"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <SaveButton label="SAVE" onPress={saveSitePassword} isSubmitting={sitePasswordSaving} />
+              </View>
             </ScrollView>
           </View>
         </View>
@@ -946,7 +1149,12 @@ export default function AdminScreen({
                 <TaskGroupForm initialData={editingItem} onSave={handleSaveTaskGroup} isSubmitting={isSubmitting} />
               )}
               {activeTab === 'tasks' && (
-                <TaskForm initialData={editingItem} onSave={handleSaveTask} isSubmitting={isSubmitting} />
+                <TaskForm
+                  initialData={editingItem}
+                  onSave={handleSaveTask}
+                  isSubmitting={isSubmitting}
+                  levelName={currentLevel?.custom_level_name}
+                />
               )}
               {activeTab === 'users' && (
                 <UserForm onSave={handleSaveUser} isSubmitting={isSubmitting} />
@@ -1484,5 +1692,199 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.brandBlack,
     letterSpacing: 1,
+  },
+  sitePwRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing['3xl'],
+  },
+  sitePwInput: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: colors.brandBlack + '33',
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    fontFamily: fonts.sans,
+    fontSize: fontSize.sm,
+    color: colors.brandBlack,
+    backgroundColor: colors.white,
+  },
+
+  // ── Level count stepper (Task Group form) ────────────────────────────────────
+  levelCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.base,
+    marginBottom: spacing.sm,
+  },
+  levelCountBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    borderWidth: 1.5,
+    borderColor: colors.brandBlack + '30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+  },
+  levelCountBtnText: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.lg,
+    color: colors.brandBlack,
+    lineHeight: 22,
+  },
+  levelCountDisplay: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  levelCountNum: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize['2xl'],
+    color: colors.brandBlack,
+    lineHeight: 28,
+  },
+  levelCountLabel: {
+    fontFamily: fonts.sans,
+    fontSize: fontSize.xs,
+    color: colors.brandBlack + '66',
+  },
+  levelPreview: {
+    backgroundColor: colors.brandBlack + '06',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  levelPreviewText: {
+    fontFamily: fonts.sans,
+    fontSize: fontSize.xs,
+    color: colors.brandBlack + '88',
+  },
+  levelPreviewMore: {
+    fontFamily: fonts.sansBold,
+    fontSize: fontSize.xs,
+    color: colors.brandBlack + '55',
+    marginTop: 2,
+  },
+
+  // ── Dropdown Picker ───────────────────────────────────────────────────────────
+  dropdownWrap: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  dropdownTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.brandBlack + '25',
+    backgroundColor: colors.white,
+    gap: spacing.sm,
+  },
+  dropdownTriggerOpen: {
+    borderColor: colors.brandBlack,
+  },
+  dropdownTriggerText: {
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: fontSize.sm,
+    color: colors.brandBlack,
+  },
+  dropdownTriggerPlaceholder: {
+    color: colors.brandBlack + '44',
+  },
+  dropdownBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  dropdownSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: radius['2xl'],
+    borderTopRightRadius: radius['2xl'],
+    maxHeight: '65%',
+    overflow: 'hidden',
+  },
+  dropdownSheetHeader: {
+    backgroundColor: colors.brandBlack,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.md,
+    borderTopLeftRadius: radius['2xl'],
+    borderTopRightRadius: radius['2xl'],
+  },
+  dropdownSheetTitle: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.sm,
+    color: colors.white,
+    letterSpacing: 1,
+  },
+  dropdownList: {
+    padding: spacing.sm,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+    borderRadius: radius.lg,
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  dropdownOptionActive: {
+    backgroundColor: colors.brandBlack,
+  },
+  dropdownOptionText: {
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: fontSize.sm,
+    color: colors.brandBlack,
+  },
+  dropdownOptionTextActive: {
+    fontFamily: fonts.sansBold,
+    color: colors.white,
+  },
+
+  // ── Task form section labels + level badge ────────────────────────────────
+  formSectionLabel: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.xs,
+    color: colors.brandBlack + '66',
+    letterSpacing: 1.5,
+    marginTop: spacing.base,
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+  },
+  levelBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  levelBadgeLabel: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.xs,
+    color: colors.brandBlack + '66',
+    letterSpacing: 1.5,
+  },
+  levelBadge: {
+    backgroundColor: colors.brandBlack,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+  },
+  levelBadgeText: {
+    fontFamily: fonts.sansBlack,
+    fontSize: fontSize.xs,
+    color: colors.white,
+    letterSpacing: 0.8,
   },
 });
