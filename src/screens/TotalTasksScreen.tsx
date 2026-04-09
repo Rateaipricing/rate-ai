@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   FlatList,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { ArrowLeft, Plus, Trash2, ShoppingCart, Copy } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -30,6 +29,7 @@ export default function TotalTasksScreen({
 }: TotalTasksScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useAppTheme();
+  const [copied, setCopied] = useState(false);
   const subtotal = cartItems.reduce((sum, item) => sum + item.task.price, 0);
 
   const handleCopyOrders = async () => {
@@ -55,7 +55,8 @@ export default function TotalTasksScreen({
     });
     lines.push(`TOTAL: $${subtotal.toLocaleString()}`);
     await Clipboard.setStringAsync(lines.join('\n'));
-    Alert.alert('Copied!', 'Order summary copied to clipboard.');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -86,11 +87,15 @@ export default function TotalTasksScreen({
         </View>
         <View style={styles.subtotalActions}>
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: colors.brandBlack }]}
+            style={[styles.actionBtn, copied && styles.actionBtnCopied, { backgroundColor: copied ? '#22c55e' : colors.brandBlack }]}
             onPress={handleCopyOrders}
             activeOpacity={0.8}
           >
-            <Copy size={20} color={colors.white} />
+            {copied ? (
+              <Text style={styles.copiedText}>Copied!</Text>
+            ) : (
+              <Copy size={20} color={colors.white} />
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: theme.primary }]}
@@ -236,6 +241,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 5,
+  },
+  actionBtnCopied: {
+    width: 80,
+    borderRadius: 22,
+  },
+  copiedText: {
+    fontFamily: fonts.sansBlack,
+    fontSize: 11,
+    color: colors.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   addMoreBtn: {
     width: 44,

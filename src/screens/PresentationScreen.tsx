@@ -22,6 +22,7 @@ interface PresentationScreenProps {
   cartItems: CartItem[];
   cartCount?: number;
   onCartPress?: () => void;
+  isTechHandbookMode?: boolean;
 }
 
 export default function PresentationScreen({
@@ -38,6 +39,7 @@ export default function PresentationScreen({
   cartItems,
   cartCount,
   onCartPress,
+  isTechHandbookMode = false,
 }: PresentationScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useAppTheme();
@@ -66,7 +68,7 @@ export default function PresentationScreen({
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      <Header onMenuPress={() => setIsMenuOpen(true)} cartCount={cartCount} onCartPress={onCartPress} />
+      <Header onMenuPress={() => setIsMenuOpen(true)} onBack={onBack} cartCount={cartCount} onCartPress={onCartPress} />
 
       <ScrollView
         style={styles.cardsContainer}
@@ -77,7 +79,8 @@ export default function PresentationScreen({
           const tierCfg = getTierConfig(task.tier);
           const isE = task.tier.toUpperCase() === 'E';
           const selected = !!getCartItem(task.task_code);
-          const features = task.task_description
+          const descSource = isTechHandbookMode ? task.custom_handbook : task.task_description;
+          const features = descSource
             .split('\n')
             .map((l) => l.trim())
             .filter(Boolean);

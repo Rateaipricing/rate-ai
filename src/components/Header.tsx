@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Menu, ClipboardList } from 'lucide-react-native';
+import { Menu, ClipboardList, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, spacing } from '../theme';
 import { useAppTheme } from '../context/AppTheme';
@@ -8,19 +8,27 @@ import { Logo } from './Logo';
 
 interface HeaderProps {
   onMenuPress: () => void;
+  onBack?: () => void;
   rightElement?: React.ReactNode;
   cartCount?: number;
   onCartPress?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onMenuPress, rightElement, cartCount, onCartPress }) => {
+export const Header: React.FC<HeaderProps> = ({ onMenuPress, onBack, rightElement, cartCount, onCartPress }) => {
   const insets = useSafeAreaInsets();
   const { theme } = useAppTheme();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
-      <TouchableOpacity onPress={onMenuPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Menu size={24} color={theme.primary} />
+      <TouchableOpacity
+        onPress={onBack ?? onMenuPress}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        {onBack ? (
+          <ArrowLeft size={24} color={theme.primary} />
+        ) : (
+          <Menu size={24} color={theme.primary} />
+        )}
       </TouchableOpacity>
 
       <Logo width={150} variant="white" />

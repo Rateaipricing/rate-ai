@@ -63,7 +63,7 @@ export default function TaskScreen({
 
   return (
     <View style={styles.container}>
-      <Header onMenuPress={() => setIsMenuOpen(true)} cartCount={cartCount} onCartPress={onCartPress} />
+      <Header onMenuPress={() => setIsMenuOpen(true)} onBack={onBack} cartCount={cartCount} onCartPress={onCartPress} />
 
       {/* Breadcrumb */}
       <View style={styles.breadcrumb}>
@@ -179,7 +179,7 @@ export default function TaskScreen({
                 {task.task_code} {task.task_name}
               </Text>
               <View style={styles.taskHandbookLines}>
-                {task.custom_handbook.split('\n').slice(0, 3).map((line, i) => (
+                {task.task_description.split('\n').slice(0, 3).map((line, i) => (
                   <Text key={i} style={styles.taskHandbookLine}>{line}</Text>
                 ))}
               </View>

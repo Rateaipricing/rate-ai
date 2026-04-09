@@ -502,6 +502,7 @@ export default function App() {
             onAddToCart={handleAddToCart}
             onRemoveFromCart={handleRemoveFromCart}
             cartItems={cartItems}
+            isTechHandbookMode={isTechHandbookMode}
             {...menuProps}
           />
         ) : null;

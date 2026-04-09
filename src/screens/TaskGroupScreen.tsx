@@ -59,7 +59,7 @@ export default function TaskGroupScreen({
 
   return (
     <View style={styles.container}>
-      <Header onMenuPress={() => setIsMenuOpen(true)} cartCount={cartCount} onCartPress={onCartPress} />
+      <Header onMenuPress={() => setIsMenuOpen(true)} onBack={onBack} cartCount={cartCount} onCartPress={onCartPress} />
 
       {/* Breadcrumb */}
       <View style={styles.breadcrumb}>
