@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Switch,
 } from 'react-native';
+import { Pencil } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { MenuOverlay } from '../components/MenuOverlay';
 import { colors, fonts, spacing, fontSize } from '../theme';
@@ -26,6 +27,7 @@ interface TaskScreenProps {
   isTechHandbookMode: boolean;
   onToggleTechHandbook: () => void;
   onContinueToPresentation: () => void;
+  onCloneAndEdit: () => void;
   onNavigate: (screen: Screen) => void;
   onLogout: () => void;
   user: AppUser | null;
@@ -48,6 +50,7 @@ export default function TaskScreen({
   isTechHandbookMode,
   onToggleTechHandbook,
   onContinueToPresentation,
+  onCloneAndEdit,
   onNavigate,
   onLogout,
   user,
@@ -137,6 +140,18 @@ export default function TaskScreen({
         keyExtractor={(_, index) => String(index)}
         style={[styles.taskList, isTechHandbookMode && styles.taskListHandbook]}
         contentContainerStyle={styles.taskListContent}
+        ListHeaderComponent={
+          <TouchableOpacity
+            style={styles.cloneHeader}
+            onPress={onCloneAndEdit}
+            activeOpacity={0.75}
+          >
+            <View style={[styles.cloneIconBox, { borderColor: theme.primary }]}>
+              <Pencil size={13} color={theme.primary} />
+            </View>
+            <Text style={styles.cloneText}>Clone and Edit This Menu</Text>
+          </TouchableOpacity>
+        }
         ListFooterComponent={
           <View style={styles.footerBtn}>
             <TouchableOpacity

@@ -63,7 +63,8 @@ export type Screen =
   | 'profile'
   | 'settings'
   | 'admin'
-  | 'total_tasks';
+  | 'total_tasks'
+  | 'edit_menu';
 
 export interface CartItem {
   id: string;

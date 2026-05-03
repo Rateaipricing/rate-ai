@@ -57,6 +57,7 @@ import TotalTasksScreen from './screens/TotalTasksScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import AdminScreen from './screens/AdminScreen';
+import EditMenuScreen from './screens/EditMenuScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -311,6 +312,9 @@ export default function App() {
         case 'total_tasks':
           setCurrentScreen('presentation');
           return true;
+        case 'edit_menu':
+          setCurrentScreen('tasks');
+          return true;
         default:
           return false;
       }
@@ -490,7 +494,19 @@ export default function App() {
             isTechHandbookMode={isTechHandbookMode}
             onToggleTechHandbook={() => setIsTechHandbookMode((v) => !v)}
             onContinueToPresentation={() => setCurrentScreen('presentation')}
+            onCloneAndEdit={() => setCurrentScreen('edit_menu')}
             {...menuProps}
+          />
+        ) : null;
+
+      case 'edit_menu':
+        return selectedTaskGroup && selectedLevel ? (
+          <EditMenuScreen
+            taskGroup={selectedTaskGroup}
+            level={selectedLevel}
+            onBack={() => setCurrentScreen('tasks')}
+            onSaved={() => setCurrentScreen('task_groups')}
+            user={user}
           />
         ) : null;
 
